@@ -170,6 +170,8 @@ h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.02em;text-wrap:balanc
 #pv .zone .zb{stroke-width:1.4;stroke-dasharray:6 4;pointer-events:none}
 #pv .zone.z-stage .zb{fill:var(--c-hdmi);fill-opacity:.16;stroke:var(--c-hdmi)}
 #pv .zone.z-seats .zb{fill:var(--c-lan);fill-opacity:.10;stroke:var(--c-lan)}
+#pv .zone.z-ops .zb{fill:var(--c-xlr);fill-opacity:.12;stroke:var(--c-xlr)}
+#pv .zone.z-ops .ztab{stroke:var(--c-xlr)}
 #pv .zone.z-other .zb{fill:var(--muted);fill-opacity:.12;stroke:var(--muted)}
 #pv .zone.z-pillar .zb{fill:var(--fg);fill-opacity:.7;stroke:var(--fg);stroke-dasharray:none}
 #pv .zone.z-partition .zb{fill:var(--fg);fill-opacity:.45;stroke:var(--fg);stroke-dasharray:none}
@@ -443,7 +445,7 @@ function ensurePlan(sh){
   var p=sh.plan;
   if(!(p.w>0))p.w=9;if(!(p.d>0))p.d=7;
   if(!Array.isArray(p.doors))p.doors=[];if(!p.placed)p.placed={};
-  if(typeof p.slack!=='number')p.slack=2;if(p.route!=='S'&&p.route!=='L')p.route='L';if(typeof p.labels!=='boolean')p.labels=false;
+  if(typeof p.slack!=='number')p.slack=2;if(p.route!=='S'&&p.route!=='L'&&p.route!=='W')p.route='L';if(typeof p.labels!=='boolean')p.labels=false;
   if(p.attach){
     var mv=false;for(var k in p.attach){if(!sh.pairs[k]){sh.pairs[k]=p.attach[k];mv=true}}
     delete p.attach;if(mv)resolveAllWire(sh);
@@ -454,12 +456,14 @@ function ensurePlan(sh){
   }
   if(!p.aim||typeof p.aim!=='object')p.aim={};
   if(!p.via||typeof p.via!=='object')p.via={};
+  if(!p.cmode||typeof p.cmode!=='object')p.cmode={};
   if(!Array.isArray(p.zones)){
     p.zones=[];
     if(sh.name===SAMPLE_NAME&&p.w===24&&p.d===14){
       placeByName(sh);
       p.zones.push({id:uid(),kind:'stage',name:'ステージ',x:7,y:0,w:10,d:2.6,h:0.8});
       p.zones.push({id:uid(),kind:'seats',name:'客席',x:2,y:5.4,w:20,d:4.6,h:0});
+      p.zones.push({id:uid(),kind:'ops',name:'オペ卓',x:7.5,y:10.4,w:9,d:3.2,h:0});
       var c8=sh.nodes.find(function(n){return n.name==='カメラ8'&&n.type==='camera'});
       if(c8&&p.placed[c8.id]&&p.placed[c8.id].x===12&&p.placed[c8.id].y===1.8){p.placed[c8.id]={x:12,y:4.4}}
       var fovs={'NX800':30,'Z200':40,'カメラ3':40,'カメラ4':50,'カメラ5':50,'カメラ6':60,'カメラ7':60,'カメラ8':70};
@@ -1202,7 +1206,7 @@ window.addEventListener('resize',function(){applyView()});
 var STD=[1,1.5,2,3,5,7.5,10,15,20,30,50,100];
 var ROOMS=[{n:'教室',w:9,d:7},{n:'小ホール',w:15,d:10},{n:'体育館',w:28,d:15},{n:'正方形(小)',w:10,d:10},{n:'正方形(大)',w:20,d:20},{n:'細長い長方形',w:24,d:8},
   {n:'小宴会場',w:14,d:9},{n:'中宴会場',w:24,d:16},{n:'大宴会場',w:40,d:25},{n:'特大宴会場',w:60,d:30}];
-var ZKIND={stage:{label:'ステージ',w:8,d:3,h:0.8},seats:{label:'客席',w:12,d:6,h:0},pillar:{label:'柱',w:0.8,d:0.8,h:0},partition:{label:'間仕切り',w:6,d:0.3,h:0},other:{label:'その他',w:3,d:2,h:0}};
+var ZKIND={stage:{label:'ステージ',w:8,d:3,h:0.8},seats:{label:'客席',w:12,d:6,h:0},ops:{label:'オペ卓',w:6,d:2.5,h:0},pillar:{label:'柱',w:0.8,d:0.8,h:0},partition:{label:'間仕切り',w:6,d:0.3,h:0},other:{label:'その他',w:3,d:2,h:0}};
 var WALLS=[{id:'top',label:'上'},{id:'right',label:'右'},{id:'bottom',label:'下'},{id:'left',label:'左'}];
 var pv=$('#pv'),pview={x:60,y:60,k:20};
 function stdLen(x){for(var i=0;i<STD.length;i++){if(x<=STD[i]+1e-9)return STD[i]}return Math.ceil(x/10)*10}
@@ -1235,14 +1239,36 @@ function zoneAt(p,q){
   });
   return h;
 }
-function legPts(P,Q,mode){
+function wallLegPts(p,P,Q){
+  var e=0.3,x0=e,y0=e,x1=p.w-e,y1=p.d-e,W2=x1-x0,H2=y1-y0,per=2*(W2+H2);
+  if(!(W2>0&&H2>0))return [P,Q];
+  function proj(R){
+    var m=Math.min(R.x,p.w-R.x,R.y,p.d-R.y);
+    if(m===R.y)return {x:clamp(R.x,x0,x1),y:y0};
+    if(m===p.d-R.y)return {x:clamp(R.x,x0,x1),y:y1};
+    if(m===R.x)return {x:x0,y:clamp(R.y,y0,y1)};
+    return {x:x1,y:clamp(R.y,y0,y1)};
+  }
+  function tOf(R){if(R.y===y0)return R.x-x0;if(R.x===x1)return W2+(R.y-y0);if(R.y===y1)return W2+H2+(x1-R.x);return 2*W2+H2+(y1-R.y)}
+  function pOf(t){t=((t%per)+per)%per;if(t<=W2)return {x:x0+t,y:y0};t-=W2;if(t<=H2)return {x:x1,y:y0+t};t-=H2;if(t<=W2)return {x:x1-t,y:y1};t-=W2;return {x:x0,y:y1-t}}
+  var A=proj(P),B=proj(Q),ta=tOf(A),tb=tOf(B),fw=((tb-ta)%per+per)%per,bw=per-fw,pts=[P,A],cs=[];
+  [0,W2,W2+H2,2*W2+H2].forEach(function(c){
+    var dt=fw<=bw?((c-ta)%per+per)%per:((ta-c)%per+per)%per,lim=fw<=bw?fw:bw;
+    if(dt>1e-9&&dt<lim-1e-9)cs.push({dt:dt,pt:pOf(c)});
+  });
+  cs.sort(function(a,b){return a.dt-b.dt}).forEach(function(c){pts.push(c.pt)});
+  pts.push(B,Q);return pts;
+}
+function legPts(P,Q,mode,p){
+  if(mode==='W')return wallLegPts(p,P,Q);
   if(mode==='S')return [P,Q];
   var mid=(P.x+Q.x)/2;return [P,{x:mid,y:P.y},{x:mid,y:Q.y},Q];
 }
 function polyLen(pts){var t=0;for(var i=1;i<pts.length;i++)t+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);return t}
 function routePts(p,cid,a,b){
-  var via=(p.via&&p.via[cid])||[],anc=[a].concat(via,[b]),out=[a];
-  for(var i=1;i<anc.length;i++){var l=legPts(anc[i-1],anc[i],p.route);for(var j=1;j<l.length;j++)out.push(l[j])}
+  var via=(p.via&&p.via[cid])||[],anc=[a].concat(via,[b]),out=[a],mode=(p.cmode&&p.cmode[cid])||p.route;
+  if(mode==='W'&&via.length)mode='L';
+  for(var i=1;i<anc.length;i++){var l=legPts(anc[i-1],anc[i],mode,p);for(var j=1;j<l.length;j++)out.push(l[j])}
   return out;
 }
 function pointAlong(pts,frac){
@@ -1258,7 +1284,7 @@ function planCables(sh,p){
   var out=[];
   sh.cables.forEach(function(c){
     var a=posOf(p,c.from.n),b=posOf(p,c.to.n);if(!a||!b)return;
-    var pts=routePts(p,c.id,a,b),flat=polyLen(p.route==='S'?pts:pts.map(function(q){return q})),dz=Math.abs(zoneAt(p,a)-zoneAt(p,b));
+    var pts=routePts(p,c.id,a,b),flat=polyLen(pts),dz=Math.abs(zoneAt(p,a)-zoneAt(p,b));
     // 直角引き回しは縦横の合計(折れ線の長さがそのまま縦横の合計になる)
     var base=flat+dz;
     var need=stdLen(base+p.slack),set=parseFloat(c.len);
@@ -1377,7 +1403,7 @@ function renderPlan(){
   el('rect',{x:x0,y:y0,width:w,height:h,fill:'none',stroke:'var(--fg)','stroke-width':4},pv);
   // zones
   (p.zones||[]).forEach(function(z){
-    var isSel=planSel&&planSel.kind==='zone'&&planSel.id===z.id,big=z.kind==='stage'||z.kind==='seats'||z.kind==='other';
+    var isSel=planSel&&planSel.kind==='zone'&&planSel.id===z.id,big=z.kind==='stage'||z.kind==='seats'||z.kind==='other'||z.kind==='ops';
     var zg=el('g',{'class':'zone z-'+z.kind+(isSel?' sel':''),'data-zid':z.id},pv);
     var zb=el('rect',{'class':'zb',x:mx(z.x),y:my(z.y),width:z.w*k,height:z.d*k,rx:z.kind==='pillar'?2:4},zg);
     if(!big){zb.setAttribute('data-zone',z.id);zb.style.cursor='move';zb.style.pointerEvents='all'}
@@ -1569,6 +1595,7 @@ function renderPlanSide(){
       '<div class="dims"><span>X</span><input id="zx" type="number" step="0.25" value="'+fm(z.x)+'"><span>Y</span><input id="zy" type="number" step="0.25" value="'+fm(z.y)+'"></div>'+
       '<div class="dims"><span>幅</span><input id="zw" type="number" step="0.25" min="0.25" value="'+fm(z.w)+'"><span>奥行</span><input id="zd" type="number" step="0.25" min="0.25" value="'+fm(z.d)+'"><span>m</span></div>'+
       (z.kind==='stage'?'<div class="field"><label for="zh">ステージの高さ(m)</label><input id="zh" type="number" step="0.1" min="0" max="3" value="'+fm(z.h||0)+'"></div><div class="note">ステージの上に置いた機材と床の機材をつなぐケーブルには、この高さの差が長さに加算されます(三脚の高さは含みません)。</div>':'')+
+      (z.kind==='ops'?'<div class="row"><button class="btn" id="zarr" type="button">配信機材をオペ卓に並べる</button></div><div class="note">ミキサー・スイッチャー・モニター・PC・ルーター・電源タップ・レコーダーなどを、このゾーンの中に並べます(カメラと返しモニターは動きません)。</div>':'')+
       '<div class="note">図の上では名前のタブをドラッグで移動、選択中の右下の●で大きさを変えられます。</div>'+
       '<div class="row"><button class="btn danger" id="zdel" type="button">ゾーンを削除</button></div>';
     var zbind=function(id,fn){var i=$(id);if(!i)return;i.addEventListener('focus',function(){i._first=true});
@@ -1576,6 +1603,16 @@ function renderPlanSide(){
     zbind('#zn',function(v){z.name=v});zbind('#zx',function(v){z.x=v});zbind('#zy',function(v){z.y=v});
     zbind('#zw',function(v){z.w=Math.max(0.25,v)});zbind('#zd',function(v){z.d=Math.max(0.25,v)});zbind('#zh',function(v){z.h=Math.max(0,v)});
     $('#zk').addEventListener('change',function(e){pushUndo();z.kind=e.target.value;if(z.kind!=='stage')z.h=0;else if(!z.h)z.h=0.8;renderPlanAll();changed()});
+    if($('#zarr'))$('#zarr').addEventListener('click',function(){
+      var ids=sh.nodes.filter(function(n){return ['audio','switcher','monitor','pc','network','power','recorder'].indexOf(n.type)>=0&&!isKaeshi(n)&&!pairs()[n.id]}).map(function(n){return n.id});
+      if(!ids.length)return;pushUndo();
+      var sp=Math.max(1,66/pview.k),cols=Math.max(1,Math.floor(z.w/sp)),rows=Math.ceil(ids.length/cols);
+      z.d=Math.max(z.d,rows*sp);z.d=Math.min(z.d,p.d-z.y);if(z.y+z.d>p.d)z.y=Math.max(0,p.d-z.d);
+      cols=Math.min(cols,ids.length);var cw=z.w/cols;
+      ids.forEach(function(id,i){var c=i%cols,r=Math.floor(i/cols);
+        p.placed[id]={x:clamp(snapM(z.x+cw*(c+0.5)),0,p.w),y:clamp(snapM(z.y+sp*(r+0.5)),0,p.d)}});
+      renderPlanAll();changed();
+    });
     $('#zdel').addEventListener('click',function(){pushUndo();p.zones=p.zones.filter(function(x){return x.id!==z.id});planSel=null;renderPlanAll();changed()});
     return;
   }
@@ -1600,6 +1637,9 @@ function renderPlanSide(){
     var vias=(p.via&&p.via[it.c.id])||[];
     box.innerHTML='<div><h2>ケーブル</h2><div style="font-weight:700">'+esc(cableTitle(sh,it.c))+'</div></div>'+cableRows(sh,[it])+
       '<div class="note">配線図側の長さ: '+esc(it.c.len||'未設定')+'</div>'+
+      '<div class="field"><label for="cmode">このケーブルの引き方</label><select id="cmode"><option value="">全体の設定に従う</option>'+[['W','壁を伝う'],['L','床を直角に'],['S','床を直線で']].map(function(m){return '<option value="'+m[0]+'"'+(p.cmode[it.c.id]===m[0]?' selected':'')+'>'+m[1]+'</option>'}).join('')+'</select></div>'+
+      (routeDraw===it.c.id?'<div class="note" style="color:var(--sel);font-weight:700">描画中: 図の空いた場所をタップすると、経由点が順に追加されます。壁の近くをタップすると壁に吸着します。</div><div class="row"><button class="btn" id="rdone" type="button">描き終わり</button></div>':
+        '<div class="row"><button class="btn" id="rdraw" type="button">経路を描く(タップで追加)</button></div>')+
       '<div><h2>経路(経由点 '+vias.length+')</h2><div class="note">通したい場所に経由点を置くと、その点を通る距離で必要長を計算します。図の上の番号付きの丸をドラッグで動かせます。</div></div>'+
       '<div class="row"><button class="btn" id="vadd" type="button">＋ 経由点</button><button class="btn" id="vclr" type="button"'+(vias.length?'':' disabled')+'>経由点を消す</button></div>'+
       '<div class="field"><label for="vwall">壁沿いに回す</label><select id="vwall"><option value="">壁を選ぶ…</option>'+WALLS.map(function(w){return '<option value="'+w.id+'">'+w.label+'の壁沿い</option>'}).join('')+'</select></div>'+
@@ -1608,8 +1648,11 @@ function renderPlanSide(){
     var cid=it.c.id;
     var addVia=function(pt){pushUndo();if(!p.via[cid])p.via[cid]=[];
       var arr=p.via[cid],best=0,bl=1e9,a=it.a,b=it.b;
-      for(var ii=0;ii<=arr.length;ii++){var t=arr.slice();t.splice(ii,0,pt);var L=polyLen(routePts((function(){var o={via:{},route:p.route};o.via[cid]=t;return o})(),cid,a,b));if(L<bl){bl=L;best=ii}}
+      for(var ii=0;ii<=arr.length;ii++){var t=arr.slice();t.splice(ii,0,pt);var L=polyLen(routePts((function(){var o={via:{},route:p.route,cmode:p.cmode,w:p.w,d:p.d};o.via[cid]=t;return o})(),cid,a,b));if(L<bl){bl=L;best=ii}}
       arr.splice(best,0,pt);renderPlanAll();changed()};
+    $('#cmode').addEventListener('change',function(e){pushUndo();if(e.target.value)p.cmode[cid]=e.target.value;else delete p.cmode[cid];renderPlanAll();changed()});
+    if($('#rdraw'))$('#rdraw').addEventListener('click',function(){pushUndo();delete p.via[cid];routeDraw=cid;renderPlanAll();changed()});
+    if($('#rdone'))$('#rdone').addEventListener('click',function(){routeDraw=null;renderPlanAll()});
     $('#vadd').addEventListener('click',function(){
       var mp=pointAlong(it.pts,0.5);addVia({x:clamp(snapM(mp.x),0,p.w),y:clamp(snapM(mp.y+1),0,p.d)});
     });
@@ -1635,12 +1678,12 @@ function renderPlanSide(){
   var bad=cabs.filter(function(x){return x.bad}).length;
   var sorted=cabs.slice().sort(function(a,b){return (b.bad-a.bad)||(b.need-a.need)||(b.base-a.base)});
   box.innerHTML='<div><h2>ケーブルの必要長</h2><div class="note">配置済み '+placed+'/'+sh.nodes.length+' 台 ・ 長さ不足 '+bad+' 本'+(unplaced?' ・ 未配置の機材につながる '+unplaced+' 本':'')+'</div></div>'+
-    '<div class="opt"><label>引き回し <select id="route"><option value="L"'+(p.route==='L'?' selected':'')+'>床を直角に(縦横)</option><option value="S"'+(p.route==='S'?' selected':'')+'>直線</option></select></label>'+
+    '<div class="opt"><label>引き回し <select id="route"><option value="L"'+(p.route==='L'?' selected':'')+'>床を直角に(縦横)</option><option value="S"'+(p.route==='S'?' selected':'')+'>直線</option><option value="W"'+(p.route==='W'?' selected':'')+'>壁を伝う</option></select></label>'+
     '<label>余裕 <input id="slack" type="number" min="0" step="0.5" value="'+p.slack+'">m</label>'+
     '<label><input id="lbl" type="checkbox"'+(p.labels?' checked':'')+'> 長さを図に表示</label></div>'+
     (sorted.length?cableRows(sh,sorted):'<div class="empty">機材を図に置くと、つながるケーブルの距離と必要な長さが出ます。</div>')+
     '<div class="row"><button class="btn" id="fill" type="button"'+(sorted.length?'':' disabled')+'>不足・未設定の長さを推奨値で配線図へ反映</button></div>'+
-    '<div class="note">必要長は「実距離 + 余裕(両端の取り回し)」を、市販の長さ(1・1.5・2・3・5・7.5・10・15・20・30・50・100m)に切り上げた値です。ステージの高さの差は加算されます。壁沿い・扉越しは、ケーブルごとに経由点を指定すると反映されます(天井の吊りや三脚の高さは含みません)。</div>';
+    '<div class="note">必要長は「実距離 + 余裕(両端の取り回し)」を、市販の長さ(1・1.5・2・3・5・7.5・10・15・20・30・50・100m)に切り上げた値です。ステージの高さの差は加算されます。壁沿い・扉越しは、ケーブルごとに引き方(壁を伝う/床を直角/直線)を変えたり、経由点を指定したりできます(天井の吊りや三脚の高さは含みません)。</div>';
   $('#route').addEventListener('change',function(e){pushUndo();p.route=e.target.value;renderPlanAll();changed()});
   var sl=$('#slack');sl.addEventListener('focus',function(){sl._first=true});
   sl.addEventListener('input',function(){var v=parseFloat(sl.value);if(isNaN(v)||v<0)return;if(sl._first){pushUndo();sl._first=false}p.slack=v;renderPlan();changed()});
@@ -1687,7 +1730,7 @@ function renderPlanAll(){
   renderPlanLeft();renderPlan();renderPlanSide();
 }
 // interaction
-var pptrs=new Map(),pmode=null,pdrag=null,ppan=null,pdoor=null;
+var routeDraw=null,pptrs=new Map(),pmode=null,pdrag=null,ppan=null,pdoor=null;
 pv.addEventListener('pointerdown',function(e){
   if(e.button!==undefined&&e.button>0)return;
   try{pv.setPointerCapture(e.pointerId)}catch(_){}
@@ -1765,7 +1808,13 @@ function pEnd(e){
     }
     pdrag=null}
   else if(pmode==='door'&&pdoor){if(pdoor.moved){changed();renderPlanSide()}pdoor=null}
-  else if(pmode==='pan'&&ppan){pv.classList.remove('panning');if(!ppan.moved&&planSel){planSel=null;renderPlanAll()}ppan=null}
+  else if(pmode==='pan'&&ppan){pv.classList.remove('panning');
+    if(!ppan.moved&&routeDraw&&planSel&&planSel.kind==='cable'&&planSel.id===routeDraw){
+      var pp2=pl(),mt=pToM(e.clientX,e.clientY),tx=clamp(snapM(mt.x),0,pp2.w),ty=clamp(snapM(mt.y),0,pp2.d),sn=0.6,ins=0.3;
+      if(tx<sn)tx=ins;else if(pp2.w-tx<sn)tx=pp2.w-ins;if(ty<sn)ty=ins;else if(pp2.d-ty<sn)ty=pp2.d-ins;
+      pushUndo();if(!pp2.via[routeDraw])pp2.via[routeDraw]=[];pp2.via[routeDraw].push({x:tx,y:ty});changed();renderPlanAll();
+    }else if(!ppan.moved&&planSel){routeDraw=null;planSel=null;renderPlanAll()}
+    ppan=null}
   pmode=null;
 }
 pv.addEventListener('pointerup',pEnd);pv.addEventListener('pointercancel',pEnd);
