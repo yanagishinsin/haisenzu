@@ -1,0 +1,1995 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>機材配線図</title>
+<meta name="theme-color" content="#1d2327">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="機材配線図">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+/* Layout concept: 左に機材パレット、中央に無限キャンバス(Miro型)、右に選択中の機材/ケーブルの設定と集計。
+   スマホでは パレット → キャンバス → 設定 の縦積み。 */
+:root{
+  --bg:#f3f4f2; --panel:#ffffff; --canvas:#fafaf8; --grid:#d4d6d1; --card:#ffffff; --line:#c3c6bf;
+  --g-red:#e5484d; --g-orange:#f08c00; --g-yellow:#c9a400; --g-green:#2f9e44; --g-teal:#12a3a3; --g-blue:#3b82f6; --g-purple:#9b5de5; --g-gray:#868e96;
+  --floor:#f4f1e8; --floorline:#e1ddcf; --fg:#1d2327; --muted:#69706b; --sel:#d81b60; --soft:#eceee9;
+  --c-sdi:#2563eb; --c-hdmi:#e8590c; --c-lan:#15803d; --c-xlr:#7c3aed; --c-power:#374151; --c-other:#6b7280;
+  --font:"Noto Sans JP","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --floor:#23282b; --floorline:#32383c;
+    --g-red:#ff7b7f; --g-orange:#ffb04a; --g-yellow:#e8c547; --g-green:#5fd47a; --g-teal:#4fd6d6; --g-blue:#7ab0ff; --g-purple:#c3a0ff; --g-gray:#aab1b8;
+    --bg:#15181a; --panel:#1e2225; --canvas:#181b1d; --grid:#32373a; --card:#262b2e; --line:#454b4f;
+    --fg:#e8ebe9; --muted:#9aa29d; --sel:#ff5c8d; --soft:#2a2f32;
+    --c-sdi:#6ea0ff; --c-hdmi:#ff9a5c; --c-lan:#4cd08a; --c-xlr:#b794ff; --c-power:#c9ced6; --c-other:#9aa1ac;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --floor:#23282b; --floorline:#32383c;
+  --g-red:#ff7b7f; --g-orange:#ffb04a; --g-yellow:#e8c547; --g-green:#5fd47a; --g-teal:#4fd6d6; --g-blue:#7ab0ff; --g-purple:#c3a0ff; --g-gray:#aab1b8;
+  --bg:#15181a; --panel:#1e2225; --canvas:#181b1d; --grid:#32373a; --card:#262b2e; --line:#454b4f;
+  --fg:#e8ebe9; --muted:#9aa29d; --sel:#ff5c8d; --soft:#2a2f32;
+  --c-sdi:#6ea0ff; --c-hdmi:#ff9a5c; --c-lan:#4cd08a; --c-xlr:#b794ff; --c-power:#c9ced6; --c-other:#9aa1ac;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:12px}
+.app{height:100%;display:flex;flex-direction:column;gap:10px;min-width:0}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.02em;text-wrap:balance}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+.tab,.btn{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 12px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.btn:hover,.tab:hover{border-color:var(--fg)}
+.btn:focus-visible,.tab:focus-visible,.chip:focus-visible,.pal:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.danger{color:var(--sel);border-color:var(--sel);background:transparent}
+.exp{display:flex;gap:6px}
+.exp[hidden]{display:none}
+.status{font-size:12px;color:var(--muted);white-space:nowrap}
+.main{flex:1;min-height:0;display:grid;grid-template-columns:158px minmax(0,1fr) 300px;gap:10px}
+.palette{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;min-width:0}
+.palette h2,.side h2{margin:0 0 2px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.08em}
+.pal{display:flex;align-items:center;gap:8px;font:inherit;font-size:12.5px;color:var(--fg);background:var(--soft);border:1px solid transparent;border-radius:8px;padding:5px 8px;cursor:grab;text-align:left}
+.pal:hover{border-color:var(--fg)}
+.pal svg{width:26px;height:26px;flex:none;color:var(--fg)}
+.stage{position:relative;min-width:0;min-height:0;background:var(--canvas);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+#cv,#pv{display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+#cv.panning,#pv.panning{cursor:grabbing}
+.cabbar{position:absolute;left:10px;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;pointer-events:none}
+.chips{display:flex;gap:6px;flex-wrap:wrap;pointer-events:auto}
+.chip{display:flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 11px 3px 8px;cursor:pointer}
+.chip i{display:block;width:20px;height:0;border-top:3px solid var(--cc)}
+.chip[aria-pressed="true"]{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.hint{font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--panel) 88%,transparent);align-self:flex-start;padding:2px 8px;border-radius:6px}
+.zoom{position:absolute;right:10px;bottom:10px;display:flex;gap:6px}
+.zoom .btn{padding:4px 10px;background:var(--panel)}
+.side{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;overflow-y:auto;min-width:0;display:flex;flex-direction:column;gap:12px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:12px;color:var(--muted)}
+.field input,.field select,.field textarea{font:inherit;color:var(--fg);background:var(--canvas);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0;width:100%}
+.field textarea{resize:vertical;min-height:60px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:13px}
+.list li{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.list .k{display:flex;align-items:center;gap:6px;min-width:0}
+.list .k i{display:block;width:16px;border-top:3px solid var(--cc);flex:none}
+.list .n{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+.note{font-size:12px;color:var(--muted)}
+.empty{color:var(--muted);font-size:13px}
+/* svg */
+.node .card{fill:var(--card);stroke:var(--line);stroke-width:1.2}
+.node.sel .card{stroke:var(--sel);stroke-width:2.6}
+.node .hdr{fill:var(--soft)}
+.node text{fill:var(--fg);font-family:var(--font);pointer-events:none}
+.node .sub{fill:var(--muted)}
+.node .plab{font-size:11px}
+.node .ic{color:var(--fg);pointer-events:none}
+.sock{fill:var(--card);stroke:var(--cc);stroke-width:2.2}
+.sock.on{fill:var(--cc)}
+.sock.dim{opacity:.18}
+.sock.ok{stroke-width:3.6}
+.sockhit{fill:transparent;cursor:crosshair}
+.cutline{stroke:var(--sel);stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
+.cable .vis{fill:none;stroke:var(--cc);stroke-width:3;stroke-linecap:round}
+.cable .halo{fill:none;stroke:var(--sel);stroke-width:9;opacity:0;stroke-linecap:round}
+.cable.sel .halo{opacity:.3}
+.cable .hit{fill:none;stroke:transparent;stroke-width:16;cursor:pointer}
+.cable .pill{fill:var(--panel);stroke:var(--line);stroke-width:1}
+.cable.sel .pill{stroke:var(--sel)}
+.cable text{fill:var(--fg);font-family:var(--font);font-size:11px;pointer-events:none}
+.t-sdi{--cc:var(--c-sdi)}.t-hdmi{--cc:var(--c-hdmi)}.t-lan{--cc:var(--c-lan)}.t-xlr{--cc:var(--c-xlr)}.t-power{--cc:var(--c-power)}.t-other{--cc:var(--c-other)}
+.tmp{fill:none;stroke-width:3;stroke-dasharray:6 6;stroke-linecap:round;pointer-events:none}
+
+.ports{display:flex;flex-direction:column;gap:5px}
+.prow{display:grid;grid-template-columns:10px minmax(0,1fr) 72px 44px 26px;gap:5px;align-items:center}
+.prow input,.prow select,.addp select{font:inherit;font-size:12.5px;color:var(--fg);background:var(--canvas);border:1px solid var(--line);border-radius:6px;padding:3px 5px;min-width:0;width:100%}
+.prow .pd{width:10px;height:10px;border-radius:50%;background:var(--cc);display:block}
+.prow .x{font:inherit;color:var(--muted);background:none;border:1px solid var(--line);border-radius:6px;cursor:pointer;padding:2px 0}
+.prow .x:hover{color:var(--sel);border-color:var(--sel)}
+.addp{margin-top:8px;flex-wrap:nowrap}
+.addp select{width:auto;flex:1}
+.addp .btn{padding:3px 8px;font-size:12.5px;white-space:nowrap}
+
+.main[hidden]{display:none}
+
+.c-red{--gc:var(--g-red)}.c-orange{--gc:var(--g-orange)}.c-yellow{--gc:var(--g-yellow)}.c-green{--gc:var(--g-green)}.c-teal{--gc:var(--g-teal)}.c-blue{--gc:var(--g-blue)}.c-purple{--gc:var(--g-purple)}.c-gray{--gc:var(--g-gray)}
+.grp .gbody{fill:color-mix(in srgb,var(--gc) 11%,transparent);stroke:var(--gc);stroke-width:1.6;pointer-events:none}
+.grp .gbar{fill:color-mix(in srgb,var(--gc) 30%,transparent);cursor:grab}
+.grp .gtitle{fill:var(--fg);font-family:var(--font);font-weight:700;pointer-events:none}
+.grp .gres{fill:var(--gc);cursor:nwse-resize;opacity:.85}
+.grp.sel .gbody{stroke-width:2.8;stroke:var(--sel)}
+.sw{display:flex;gap:8px;flex-wrap:wrap}
+.swb{width:26px;height:26px;border-radius:50%;background:var(--gc);border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+.swb[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--fg)}
+.swb:focus-visible{outline:2px solid var(--sel);outline-offset:3px}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}
+.seg button{font:inherit;color:var(--fg);background:transparent;border:0;padding:5px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.seg button:focus-visible{outline:2px solid var(--sel);outline-offset:-2px}
+.tmpl{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.tmpl button,.dbtn{font:inherit;font-size:12px;color:var(--fg);background:var(--soft);border:1px solid transparent;border-radius:8px;padding:5px 4px;cursor:pointer;line-height:1.3}
+.tmpl button:hover,.dbtn:hover{border-color:var(--fg)}
+.tmpl button[aria-pressed="true"]{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.tmpl small{display:block;color:var(--muted);font-size:11px}
+.dims{display:flex;gap:6px;align-items:center}
+.dims input{font:inherit;font-size:13px;color:var(--fg);background:var(--canvas);border:1px solid var(--line);border-radius:6px;padding:3px 5px;width:100%;min-width:0}
+.dims span{font-size:12px;color:var(--muted);white-space:nowrap}
+.eqrow{display:flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;color:var(--fg);background:var(--soft);border:1px solid transparent;border-radius:8px;padding:3px 6px;cursor:grab;text-align:left;width:100%}
+.eqrow:hover,.eqrow.sel{border-color:var(--fg)}
+.eqrow svg{width:20px;height:20px;flex:none}
+.eqrow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eqrow .st{font-size:11px;color:var(--muted);white-space:nowrap}
+.eqrow.off{opacity:.7}
+.plist{display:flex;flex-direction:column;gap:5px;min-width:0}
+.crow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;font-size:12.5px;padding:4px 6px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--canvas)}
+.crow.bad{border-color:var(--sel)}
+.crow .t{display:flex;gap:6px;align-items:center;min-width:0}
+.crow .t i{display:block;width:12px;border-top:3px solid var(--cc);flex:none}
+.crow .t span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crow .m{color:var(--muted);font-size:11.5px;grid-column:1 / -1;font-variant-numeric:tabular-nums}
+.crow .r{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.crow.bad .r{color:var(--sel)}
+.opt{display:flex;gap:10px;align-items:center;font-size:12.5px;flex-wrap:wrap}
+.opt label{display:flex;gap:4px;align-items:center}
+.opt input[type=number]{width:60px;font:inherit;color:var(--fg);background:var(--canvas);border:1px solid var(--line);border-radius:6px;padding:2px 5px}
+#pv text{font-family:var(--font);fill:var(--fg);pointer-events:none}
+#pv .dim{fill:var(--muted);font-size:11px}
+#pv .zone .zb{stroke-width:1.4;stroke-dasharray:6 4;pointer-events:none}
+#pv .zone.z-stage .zb{fill:var(--c-hdmi);fill-opacity:.16;stroke:var(--c-hdmi)}
+#pv .zone.z-seats .zb{fill:var(--c-lan);fill-opacity:.10;stroke:var(--c-lan)}
+#pv .zone.z-other .zb{fill:var(--muted);fill-opacity:.12;stroke:var(--muted)}
+#pv .zone.z-pillar .zb{fill:var(--fg);fill-opacity:.7;stroke:var(--fg);stroke-dasharray:none}
+#pv .zone.z-partition .zb{fill:var(--fg);fill-opacity:.45;stroke:var(--fg);stroke-dasharray:none}
+#pv .zone .ztab{fill:var(--panel);stroke:var(--line)}
+#pv .zone.z-stage .ztab{stroke:var(--c-hdmi)}#pv .zone.z-seats .ztab{stroke:var(--c-lan)}
+#pv .zone .ztxt{font-size:11px;font-weight:700;fill:var(--fg)}
+#pv .zone .ztxt2{font-size:10px;font-weight:700;fill:var(--bg);paint-order:stroke;stroke:var(--fg);stroke-width:3px;pointer-events:none}
+#pv .zone.sel .zb{stroke:var(--sel);stroke-width:2.2}
+#pv .zres{fill:var(--sel);stroke:var(--panel);stroke-width:2;cursor:nwse-resize}
+#pv .aim{fill:var(--fg);fill-opacity:.07;stroke:var(--fg);stroke-opacity:.4;stroke-width:1;stroke-dasharray:3 3;pointer-events:none}
+#pv .aim.sel{fill:var(--sel);fill-opacity:.12;stroke:var(--sel);stroke-opacity:.8}
+#pv .aimh circle,#pv .via circle{fill:var(--panel);stroke:var(--sel);stroke-width:2}
+#pv .aimh text,#pv .via text{font-size:11px;font-weight:700;fill:var(--sel);pointer-events:none}
+#pv .eq .bg{fill:var(--card);stroke:var(--line);stroke-width:1.3}
+#pv .eq.sel .bg{stroke:var(--sel);stroke-width:2.8}
+#pv .eq .ic{color:var(--fg)}
+#pv .eq .cap{font-size:11px;font-weight:700;paint-order:stroke;stroke:var(--floor);stroke-width:3px;stroke-linejoin:round}
+#pv .pc .l{fill:none;stroke:var(--cc);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+#pv .pc .halo{fill:none;stroke:var(--sel);stroke-width:8;opacity:0;stroke-linecap:round;stroke-linejoin:round}
+#pv .pc.sel .halo{opacity:.3}
+#pv .pc .hit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer}
+#pv .pc .pill{fill:var(--panel);stroke:var(--line)}
+#pv .pc.bad .pill{stroke:var(--sel);stroke-width:1.6}
+#pv .pc text{font-size:11px}
+#pv .pc.bad text{fill:var(--sel);font-weight:700}
+#pv .door.sel .leaf,#pv .door.sel .arc{stroke:var(--sel)}
+@media (max-width:860px){
+  html,body{height:auto}
+  .app{height:auto}
+  .main{display:flex;flex-direction:column}
+  .palette{flex-direction:row;overflow-x:auto;overflow-y:hidden;align-items:center}
+  .palette h2{display:none}
+  .pal{flex:none}
+  .stage{height:62vh;min-height:380px;flex:none}
+  #mainPlan .palette{flex-direction:column;overflow:visible;align-items:stretch;order:3}
+  #mainPlan .stage{order:1;height:68vh}
+  #mainPlan .side{order:2}
+  .tab{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .tabs{flex:1 1 100%;order:5}
+  .side{overflow:visible}
+}
+@media (prefers-reduced-motion:no-preference){.btn,.tab,.chip,.pal{transition:border-color .12s}}
+[hidden]{display:none!important}
+html{color-scheme:light dark}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ic-camera" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="14" width="27" height="21" rx="3"/><path d="M32 21l11-5v17l-11-5z"/><circle cx="18" cy="24.5" r="5"/><path d="M11 14l3-5h8l3 5"/></g></symbol>
+    <symbol id="ic-switcher" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="40" height="28" rx="3"/><rect x="9" y="15" width="7" height="7"/><rect x="20.5" y="15" width="7" height="7"/><rect x="32" y="15" width="7" height="7"/><path d="M10 31h28"/><circle cx="29" cy="31" r="2.4" fill="currentColor"/></g></symbol>
+    <symbol id="ic-pc" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="10" width="30" height="21" rx="2"/><path d="M4 38h40l-4-7H8z"/></g></symbol>
+    <symbol id="ic-monitor" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="40" height="26" rx="2"/><path d="M17 41h14M24 34v7"/></g></symbol>
+    <symbol id="ic-recorder" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="13" width="40" height="22" rx="3"/><circle cx="15" cy="24" r="4.2" fill="currentColor"/><path d="M26 20h13M26 28h8"/></g></symbol>
+    <symbol id="ic-audio" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="38" height="34" rx="3"/><path d="M15 14v20M24 14v20M33 14v20"/><rect x="11.5" y="18" width="7" height="4.5" fill="currentColor"/><rect x="20.5" y="26" width="7" height="4.5" fill="currentColor"/><rect x="29.5" y="16" width="7" height="4.5" fill="currentColor"/></g></symbol>
+    <symbol id="ic-mic" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="17.5" y="4" width="13" height="23" rx="6.5"/><path d="M11 22a13 13 0 0 0 26 0M24 35v8M16 43h16"/></g></symbol>
+    <symbol id="ic-network" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="27" width="38" height="13" rx="2"/><circle cx="13" cy="33.5" r="1.7" fill="currentColor"/><circle cx="20" cy="33.5" r="1.7" fill="currentColor"/><path d="M13 27L9 11M35 27l4-16M24 27V9"/></g></symbol>
+    <symbol id="ic-power" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M28 4L11 27h12l-3 17 17-24H25z"/></g></symbol>
+    <symbol id="ic-frame" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="8" width="38" height="32" rx="4" stroke-dasharray="5 4"/><path d="M5 17h38"/></g></symbol>
+    <symbol id="ic-other" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="10" width="34" height="28" rx="4"/><path d="M15 20h18M15 28h11"/></g></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <header>
+    <h1>機材配線図</h1>
+    <div class="seg" role="group" aria-label="表示の切り替え"><button type="button" id="vWire" aria-pressed="true">配線図</button><button type="button" id="vPlan" aria-pressed="false">会場レイアウト</button></div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="シート"></div>
+    <button class="btn" id="undo" type="button">元に戻す</button>
+    <span class="exp" id="exp" hidden><button class="btn" id="expPng" type="button" title="いま開いている図を画像で保存">画像(PNG)</button><button class="btn" id="expPdf" type="button" title="配線図・見取り図・集計をまとめて保存">PDF</button></span>
+    <span class="status" id="status" aria-live="polite">読み込み中…</span>
+  </header>
+  <div class="main" id="mainWire">
+    <aside class="palette" id="palette" aria-label="機材パレット"><h2>機材を追加</h2></aside>
+    <section class="stage" id="stage">
+      <svg id="cv" role="application" aria-label="配線図キャンバス">
+        <defs><pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.1" style="fill:var(--grid)"/></pattern></defs>
+        <rect id="gridrect" x="-5000" y="-5000" width="10000" height="10000" fill="url(#grid)"/>
+        <g id="world"><g id="gGroups"></g><g id="gCables"></g><g id="gNodes"></g><g id="gTmp"></g></g>
+      </svg>
+      <div class="cabbar">
+        <div class="chips" id="chips" role="group" aria-label="新しく引くケーブルの種類"></div>
+        <div class="hint" id="hint">端子(○)から同じ色の端子へドラッグで接続。つないだ端子をつかんで空白で離すと外れます。Alt+ドラッグで切断。</div>
+      </div>
+      <div class="zoom"><button class="btn" id="zout" type="button" aria-label="縮小">−</button><button class="btn" id="zin" type="button" aria-label="拡大">＋</button><button class="btn" id="resolve" type="button" title="重なっている機材を少しずつずらします">重なり解消</button><button class="btn" id="detachAll" type="button" title="合体しているカメラと返しモニターをすべて分離します">分離</button><button class="btn" id="zfit" type="button">全体表示</button></div>
+    </section>
+    <aside class="side" id="side" aria-live="polite"></aside>
+  </div>
+  <div class="main" id="mainPlan" hidden>
+    <aside class="palette" id="pLeft" aria-label="会場の設定"></aside>
+    <section class="stage" id="pStage">
+      <svg id="pv" role="application" aria-label="会場の見取り図"></svg>
+      <div class="zoom"><button class="btn" id="pzout" type="button" aria-label="縮小">−</button><button class="btn" id="pzin" type="button" aria-label="拡大">＋</button><button class="btn" id="pzfit" type="button">全体表示</button></div>
+    </section>
+    <aside class="side" id="pSide" aria-live="polite"></aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg';
+var NW=156,HH=40,RH=21,PADY=7;
+var $=function(s){return document.querySelector(s)};
+var uid=function(){return Math.random().toString(36).slice(2,9)};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+
+var NODE_TYPES=[
+ {id:'camera',label:'カメラ'},{id:'switcher',label:'スイッチャー'},{id:'pc',label:'PC / OBS'},
+ {id:'monitor',label:'モニター'},{id:'recorder',label:'レコーダー'},{id:'audio',label:'ミキサー'},
+ {id:'mic',label:'マイク'},{id:'network',label:'ルーター / HUB'},{id:'power',label:'電源タップ'},{id:'other',label:'その他'}
+];
+var NT={};NODE_TYPES.forEach(function(t){NT[t.id]=t});
+var CABLE_TYPES=[
+ {id:'sdi',label:'SDI',short:'SDI',dash:''},
+ {id:'hdmi',label:'HDMI',short:'HDMI',dash:'10 4'},
+ {id:'lan',label:'LAN',short:'LAN',dash:'2 5'},
+ {id:'xlr',label:'XLR(キャノン・音声)',short:'XLR',dash:'14 4 2 4'},
+ {id:'power',label:'電源',short:'電源',dash:'6 6'},
+ {id:'other',label:'その他',short:'他',dash:'1 0'}
+];
+var CT={};CABLE_TYPES.forEach(function(t){CT[t.id]=t});
+function tcls(t){return 't-'+(CT[t]?t:'other')}
+
+/* ---------- default terminals per equipment type ---------- */
+function P(dir,type,label){return {id:uid(),dir:dir,type:type,label:label}}
+function defaultPorts(type){
+  switch(type){
+    case 'camera':return [P('in','xlr','XLR IN'),P('in','power','電源'),P('out','sdi','SDI OUT'),P('out','hdmi','HDMI OUT')];
+    case 'switcher':return [P('in','sdi','SDI 1'),P('in','sdi','SDI 2'),P('in','sdi','SDI 3'),P('in','sdi','SDI 4'),
+      P('in','hdmi','HDMI 5'),P('in','hdmi','HDMI 6'),P('in','hdmi','HDMI 7'),P('in','hdmi','HDMI 8'),P('in','power','電源'),
+      P('out','hdmi','HDMI PGM'),P('out','hdmi','HDMI MV'),P('out','hdmi','HDMI 返し1'),P('out','hdmi','HDMI 返し2'),P('out','lan','LAN')];
+    case 'pc':return [P('in','hdmi','HDMI(取込)'),P('in','power','電源'),P('out','lan','LAN'),P('out','hdmi','HDMI OUT')];
+    case 'monitor':return [P('in','hdmi','HDMI IN'),P('in','sdi','SDI IN'),P('in','power','電源')];
+    case 'recorder':return [P('in','hdmi','HDMI IN'),P('in','sdi','SDI IN'),P('in','power','電源'),P('out','hdmi','HDMI OUT')];
+    case 'audio':return [P('in','xlr','CH1'),P('in','xlr','CH2'),P('in','xlr','CH3'),P('in','xlr','CH4'),P('in','power','電源'),P('out','xlr','OUT L'),P('out','xlr','OUT R')];
+    case 'mic':return [P('out','xlr','XLR OUT')];
+    case 'network':return [P('in','power','電源'),P('in','lan','WAN'),P('out','lan','LAN 1'),P('out','lan','LAN 2'),P('out','lan','LAN 3'),P('out','lan','LAN 4')];
+    case 'power':return [P('in','power','AC IN'),P('out','power','OUT 1'),P('out','power','OUT 2'),P('out','power','OUT 3'),P('out','power','OUT 4'),P('out','power','OUT 5'),P('out','power','OUT 6')];
+    default:return [P('in','other','IN'),P('out','other','OUT')];
+  }
+}
+
+var state=null, sel=null, viewMode='wire', planSel=null, planFit=true;
+var view={x:40,y:60,k:1};
+var undoStack=[], touched=false;
+
+/* ---------- sample: 8 cameras ---------- */
+function sampleSheet(){
+  var nodes=[],cables=[];
+  function node(type,x,y,name,note){var n={id:uid(),type:type,x:x,y:y,name:name,note:note||'',ports:defaultPorts(type)};nodes.push(n);return n}
+  function port(n,dir,label){return n.ports.find(function(p){return p.dir===dir&&p.label===label})}
+  function wire(a,pa,b,pb,len,memo){cables.push({id:uid(),from:{n:a.id,p:pa.id},to:{n:b.id,p:pb.id},len:len||'',memo:memo||''})}
+  var mixer=node('audio',-250,40,'ミキサー','音声');
+  var cams=[];
+  for(var i=0;i<8;i++){
+    var nm=i===0?'NX800':(i===1?'Z200':'カメラ'+(i+1));
+    cams.push(node('camera',0,[0,104,272,440,544,648,752,856][i],nm,'Cam'+(i+1)));
+  }
+  var sw=node('switcher',380,230,'スイッチャー','');
+  var mon=node('monitor',700,120,'モニター','確認用');
+  var pc=node('pc',700,300,'PC (OBS)','配信');
+  var rt=node('network',960,300,'ルーター','');
+  var tap=node('power',150,860,'電源タップ','');
+  wire(mixer,port(mixer,'out','OUT L'),cams[0],port(cams[0],'in','XLR IN'),'15m','音声');
+  wire(mixer,port(mixer,'out','OUT R'),cams[1],port(cams[1],'in','XLR IN'),'10m','音声');
+  for(var j=0;j<4;j++)wire(cams[j],port(cams[j],'out','SDI OUT'),sw,port(sw,'in','SDI '+(j+1)),['10m','20m','20m','20m'][j],'Cam'+(j+1));
+  for(var k=4;k<8;k++)wire(cams[k],port(cams[k],'out','HDMI OUT'),sw,port(sw,'in','HDMI '+(k+1)),['10m','15m','15m','15m'][k-4],'Cam'+(k+1));
+  wire(sw,port(sw,'out','HDMI PGM'),pc,port(pc,'in','HDMI(取込)'),'10m','PGM');
+  wire(sw,port(sw,'out','HDMI MV'),mon,port(mon,'in','HDMI IN'),'10m','マルチビュー');
+  wire(pc,port(pc,'out','LAN'),rt,port(rt,'in','WAN'),'10m','');
+  wire(tap,port(tap,'out','OUT 1'),sw,port(sw,'in','電源'),'','');
+  var k1=node('monitor',700,-130,'返しモニター1','カメラマン用');
+  var k2=node('monitor',960,60,'返しモニター2','カメラマン用');
+  k1.ports=[P('in','hdmi','HDMI IN'),P('in','power','電源')];k2.ports=[P('in','hdmi','HDMI IN'),P('in','power','電源')];
+  wire(sw,port(sw,'out','HDMI 返し1'),k1,port(k1,'in','HDMI IN'),'15m','返し');
+  wire(sw,port(sw,'out','HDMI 返し2'),k2,port(k2,'in','HDMI IN'),'15m','返し');
+  var sh={id:uid(),name:'サンプル(8カメ)',nodes:nodes,cables:cables};
+  ensurePlan(sh);
+  return sh;
+}
+function newState(){var s=sampleSheet();return {sheets:[s],active:s.id}}
+function cur(){return state.sheets.find(function(s){return s.id===state.active})||state.sheets[0]}
+function nodeById(sh,id){return sh.nodes.find(function(n){return n.id===id})}
+function cableById(sh,id){return sh.cables.find(function(c){return c.id===id})}
+function portOf(n,pid){return n&&n.ports.find(function(p){return p.id===pid})}
+
+/* ---------- geometry ---------- */
+function childOf(sh,n){var pr=sh.pairs;if(!pr)return null;for(var k in pr){if(pr[k]===n.id){var c=nodeById(sh,k);if(c)return c}}return null}
+function hostOf(sh,n){var pr=sh.pairs,h=pr&&pr[n.id];return h?(nodeById(sh,h)||null):null}
+function isChild(sh,n){return !!hostOf(sh,n)}
+function groupById(sh,id){return (sh.groups||[]).find(function(g){return g.id===id})}
+function layout(sh,n){
+  var secs=[{node:n}],c=childOf(sh,n);if(c)secs.push({node:c});
+  var y=HH+PADY,m={},seps=[];
+  secs.forEach(function(sec,si){
+    if(si>0){seps.push({y:y,node:sec.node});y+=RH}
+    var ins=0,outs=0;
+    sec.node.ports.forEach(function(p){
+      var i=p.dir==='in'?ins++:outs++;
+      var rx=p.dir==='in'?0:NW,ry=y+i*RH+RH/2;
+      m[p.id]={x:n.x+rx,y:n.y+ry,rx:rx,ry:ry,dir:p.dir,port:p,node:sec.node};
+    });
+    y+=Math.max(ins,outs,1)*RH;
+  });
+  return {h:y+PADY,sockets:m,seps:seps,child:c};
+}
+function nodeH(n){return layout(cur(),n).h}
+function sockets(n){return layout(cur(),n).sockets}
+function sockOf(sh,nid,pid){var n=nodeById(sh,nid);if(!n)return null;var h=hostOf(sh,n)||n;return layout(sh,h).sockets[pid]||null}
+function ctypeOf(sh,c){
+  var a=nodeById(sh,c.from.n),b=nodeById(sh,c.to.n);
+  var pa=portOf(a,c.from.p),pb=portOf(b,c.to.p);
+  var ta=pa?pa.type:'other',tb=pb?pb.type:'other';
+  return ta!=='other'?ta:tb;
+}
+function compat(pa,pb){return pa.type===pb.type||pa.type==='other'||pb.type==='other'}
+function curve(p0,dir0,p1,dir1){
+  var n0=dir0==='in'?-1:1,n1=dir1==='in'?-1:1;
+  var d=Math.max(40,Math.abs(p1.x-p0.x)*0.5);
+  var c1={x:p0.x+n0*d,y:p0.y},c2={x:p1.x+n1*d,y:p1.y};
+  return {p0:p0,c1:c1,c2:c2,p1:p1,
+    d:'M'+p0.x+' '+p0.y+' C'+c1.x+' '+c1.y+' '+c2.x+' '+c2.y+' '+p1.x+' '+p1.y,
+    mid:{x:(p0.x+3*c1.x+3*c2.x+p1.x)/8,y:(p0.y+3*c1.y+3*c2.y+p1.y)/8}};
+}
+function bez(cv,t){
+  var u=1-t;
+  return {x:u*u*u*cv.p0.x+3*u*u*t*cv.c1.x+3*u*t*t*cv.c2.x+t*t*t*cv.p1.x,
+          y:u*u*u*cv.p0.y+3*u*u*t*cv.c1.y+3*u*t*t*cv.c2.y+t*t*t*cv.p1.y};
+}
+function computeCables(sh){
+  var out=[];
+  sh.cables.forEach(function(c){
+    var sa=sockOf(sh,c.from.n,c.from.p),sb=sockOf(sh,c.to.n,c.to.p);if(!sa||!sb)return;
+    var cv=curve(sa,sa.dir,sb,sb.dir);cv.c=c;cv.type=ctypeOf(sh,c);out.push(cv);
+  });
+  return out;
+}
+function socketAt(sh,p,k){
+  var r=Math.min(22,Math.max(11,15/k)),best=null,bd=1e9;
+  sh.nodes.forEach(function(n){
+    if(isChild(sh,n))return;
+    var m=layout(sh,n).sockets;
+    Object.keys(m).forEach(function(id){
+      var s=m[id],d=Math.hypot(s.x-p.x,s.y-p.y);
+      if(d<=r&&d<bd){bd=d;best=s}
+    });
+  });
+  return best;
+}
+function usedMap(sh){
+  var u={};sh.cables.forEach(function(c){u[c.from.n+'|'+c.from.p]=c;u[c.to.n+'|'+c.to.p]=c});return u;
+}
+
+
+/* ---------- plan data helpers ---------- */
+var SAMPLE_NAME='サンプル(8カメ)';
+var SAMPLE_POS={'ミキサー':[5.5,12.6],'NX800':[12,7],'Z200':[6,7],'カメラ3':[18,7],'カメラ4':[3,3.6],'カメラ5':[21,3.6],'カメラ6':[8.5,3.2],'カメラ7':[15.5,3.2],'カメラ8':[12,4.4],
+  'スイッチャー':[12,11],'モニター':[8.6,11],'PC (OBS)':[15.4,11],'ルーター':[18,12.6],'電源タップ':[12,12.9],'返しモニター1':[5.5,9],'返しモニター2':[18.5,9]};
+function defaultPlan(){return {w:9,d:7,room:'教室',doors:[],placed:{},slack:2,route:'L',labels:false}}
+function placeByName(sh){
+  sh.nodes.forEach(function(n){var q=SAMPLE_POS[n.name];if(q&&!sh.plan.placed[n.id])sh.plan.placed[n.id]={x:q[0],y:q[1]}});
+}
+function ensurePlan(sh){
+  var fresh=!sh.plan,hadPairs=!!sh.pairs;
+  if(!sh.pairs)sh.pairs={};
+  if(!Array.isArray(sh.groups))sh.groups=[];
+  if(fresh)sh.plan=defaultPlan();
+  var p=sh.plan;
+  if(!(p.w>0))p.w=9;if(!(p.d>0))p.d=7;
+  if(!Array.isArray(p.doors))p.doors=[];if(!p.placed)p.placed={};
+  if(typeof p.slack!=='number')p.slack=2;if(p.route!=='S'&&p.route!=='L')p.route='L';if(typeof p.labels!=='boolean')p.labels=false;
+  if(p.attach){
+    var mv=false;for(var k in p.attach){if(!sh.pairs[k]){sh.pairs[k]=p.attach[k];mv=true}}
+    delete p.attach;if(mv)resolveAllWire(sh);
+  }
+  if(fresh&&sh.name===SAMPLE_NAME){
+    p.w=24;p.d=14;p.room='体育館';
+    p.doors=[{id:uid(),wall:'bottom',pos:6,width:2},{id:uid(),wall:'bottom',pos:19,width:2},{id:uid(),wall:'right',pos:9,width:1.2}];
+  }
+  if(!p.aim||typeof p.aim!=='object')p.aim={};
+  if(!p.via||typeof p.via!=='object')p.via={};
+  if(!Array.isArray(p.zones)){
+    p.zones=[];
+    if(sh.name===SAMPLE_NAME&&p.w===24&&p.d===14){
+      placeByName(sh);
+      p.zones.push({id:uid(),kind:'stage',name:'ステージ',x:7,y:0,w:10,d:2.6,h:0.8});
+      p.zones.push({id:uid(),kind:'seats',name:'客席',x:2,y:5.4,w:20,d:4.6,h:0});
+      var c8=sh.nodes.find(function(n){return n.name==='カメラ8'&&n.type==='camera'});
+      if(c8&&p.placed[c8.id]&&p.placed[c8.id].x===12&&p.placed[c8.id].y===1.8){p.placed[c8.id]={x:12,y:4.4}}
+      var fovs={'NX800':30,'Z200':40,'カメラ3':40,'カメラ4':50,'カメラ5':50,'カメラ6':60,'カメラ7':60,'カメラ8':70};
+      sh.nodes.forEach(function(n){
+        var q=n.type==='camera'&&p.placed[n.id];if(!q||!fovs[n.name]||p.aim[n.id])return;
+        var dx=12-q.x,dy=1.3-q.y,dist=Math.hypot(dx,dy);
+        p.aim[n.id]={ang:(Math.round(Math.atan2(dx,-dy)*180/Math.PI/5)*5+360)%360,fov:fovs[n.name],range:Math.round((dist*1.05+1)*2)/2};
+      });
+    }
+  }
+  if(sh.name===SAMPLE_NAME){
+    placeByName(sh);
+    if(!hadPairs&&!Object.keys(sh.pairs).length){
+      [['返しモニター1','Z200'],['返しモニター2','カメラ3']].forEach(function(pr){
+        var m=sh.nodes.find(function(n){return n.name===pr[0]}),c=sh.nodes.find(function(n){return n.name===pr[1]&&n.type==='camera'});
+        if(m&&c){sh.pairs[m.id]=c.id;if(p.placed[c.id])p.placed[m.id]={x:p.placed[c.id].x,y:p.placed[c.id].y}}
+      });
+    }
+  }
+}
+function upgradeSample(sh){
+  if(sh.name!==SAMPLE_NAME)return;
+  var sw=sh.nodes.find(function(n){return n.type==='switcher'&&n.name==='スイッチャー'});
+  if(!sw||sh.nodes.some(function(n){return n.name==='返しモニター1'}))return;
+  var add=function(label){
+    var q=sw.ports.find(function(x){return x.dir==='out'&&x.label===label});
+    if(!q){q=P('out','hdmi',label);sw.ports.push(q)}return q;
+  };
+  [['返しモニター1',-130,700],['返しモニター2',60,960]].forEach(function(d,i){
+    var m={id:uid(),type:'monitor',x:d[2],y:d[1],name:d[0],note:'カメラマン用',ports:defaultPorts('monitor')};
+    sh.nodes.push(m);
+    var o=add('HDMI 返し'+(i+1));
+    sh.cables.push({id:uid(),from:{n:sw.id,p:o.id},to:{n:m.id,p:m.ports[0].id},len:'15m',memo:'返し'});
+  });
+}
+
+/* ---------- persistence ---------- */
+var dbRef=null, writing=false, pendingWrite=false, saveTimer=null, localSavedAt=0;
+var LS='wiring-diagram-v1';
+var lastStat='loading';
+function setStatus(k){
+  lastStat=k;
+  var t={loading:'読み込み中…',saving:'保存中…',saved:'保存済み',local:'この端末に保存'}[k]||'';
+  $('#status').textContent=t;
+}
+function snapshot(){return JSON.stringify({sheets:state.sheets,active:state.active})}
+function changed(){touched=true;setStatus('saving');clearTimeout(saveTimer);saveTimer=setTimeout(flush,700)}
+function flush(){
+  if(writing){pendingWrite=true;return}
+  var payload={json:snapshot(),savedAt:Date.now()};
+  try{localStorage.setItem(LS,JSON.stringify(payload));localSavedAt=payload.savedAt}catch(e){}
+  if(!dbRef){setStatus('local');return}
+  writing=true;
+  dbRef.set(payload).then(function(){setStatus('saved')},function(){setStatus('local')}).then(function(){
+    writing=false;if(pendingWrite){pendingWrite=false;flush()}
+  });
+}
+function freePort(cables,n,dir,t){
+  var used={};cables.forEach(function(c){used[c.from.n+'|'+c.from.p]=1;used[c.to.n+'|'+c.to.p]=1});
+  var p=n.ports.find(function(q){return q.dir===dir&&q.type===t&&!used[n.id+'|'+q.id]});
+  if(!p){p={id:uid(),dir:dir,type:t,label:CT[t].short+(dir==='in'?' IN':' OUT')};n.ports.push(p)}
+  return p;
+}
+function migrate(o){
+  // 旧サンプル(端子なしの8機材)は新しい8カメサンプルに置き換える
+  if(o.sheets.length===1){
+    var s0=o.sheets[0];
+    if(s0.name==='サンプル(例)'&&s0.nodes.length===8&&s0.nodes.every(function(n){return !n.ports})){
+      var ns=sampleSheet();o.sheets=[ns];o.active=ns.id;return o;
+    }
+  }
+  o.sheets.forEach(function(sh){
+    sh.nodes.forEach(function(n){if(!Array.isArray(n.ports))n.ports=defaultPorts(n.type)});
+    var out=[];
+    sh.cables.forEach(function(c){
+      if(c.from&&typeof c.from==='object'){out.push(c);return}
+      var a=nodeById(sh,c.from),b=nodeById(sh,c.to);if(!a||!b)return;
+      var t=CT[c.type]?c.type:'other';
+      var pa=freePort(out,a,'out',t);
+      out.push({id:'tmp',from:{n:a.id,p:pa.id},to:{n:b.id,p:'x'},len:'',memo:''});
+      var pb=freePort(out,b,'in',t);
+      out.pop();
+      out.push({id:c.id,from:{n:a.id,p:pa.id},to:{n:b.id,p:pb.id},len:c.len||'',memo:c.memo||''});
+    });
+    sh.cables=out.filter(function(c){
+      var a=nodeById(sh,c.from.n),b=nodeById(sh,c.to.n);
+      return a&&b&&portOf(a,c.from.p)&&portOf(b,c.to.p);
+    });
+    upgradeSample(sh);
+    ensurePlan(sh);
+  });
+  return o;
+}
+function parseState(json){
+  try{var o=JSON.parse(json);if(o&&Array.isArray(o.sheets)&&o.sheets.length)return migrate(o)}catch(e){}
+  return null;
+}
+function loadLocal(){
+  try{var raw=localStorage.getItem(LS);if(raw){var p=JSON.parse(raw);var s=parseState(p.json);if(s){localSavedAt=p.savedAt||0;return s}}}catch(e){}
+  return null;
+}
+function initDb(){
+  if(!(window.claude&&window.claude.use)){setStatus('local');return}
+  var done=false;
+  var timer=setTimeout(function(){if(!done)setStatus('local')},9000);
+  window.claude.use('db').then(function(db){
+    if(!db){done=true;clearTimeout(timer);setStatus('local');return}
+    dbRef=db.doc('wiring/main');
+    return dbRef.get().then(function(snap){
+      done=true;clearTimeout(timer);
+      if(snap.exists){
+        var d=snap.data()||{};var s=parseState(d.json);
+        if(s&&!touched&&(d.savedAt||0)>=localSavedAt){state=s;sel=null;fitView();renderAll()}
+      }
+      setStatus('saved');
+      if(touched||!snap.exists||localSavedAt>0)flush();
+    });
+  }).catch(function(){done=true;clearTimeout(timer);setStatus('local')});
+}
+
+/* ---------- undo ---------- */
+function pushUndo(){undoStack.push(snapshot());if(undoStack.length>40)undoStack.shift();$('#undo').disabled=false}
+function undo(){
+  var s=undoStack.pop();if(!s)return;
+  var o=parseState(s);if(!o)return;
+  state=o;conn=null;
+  var sh=cur();
+  if(sel&&!(sel.kind==='node'?nodeById(sh,sel.id):(sel.kind==='group'?groupById(sh,sel.id):cableById(sh,sel.id))))sel=null;
+  $('#undo').disabled=undoStack.length===0;
+  renderAll();changed();
+}
+
+/* ---------- svg helpers ---------- */
+var svg=$('#cv'),gWorld=$('#world'),gGroups=$('#gGroups'),gCables=$('#gCables'),gNodes=$('#gNodes'),gTmp=$('#gTmp');
+function el(tag,attrs,parent){
+  var e=document.createElementNS(NS,tag);
+  for(var k in attrs){e.setAttribute(k,attrs[k])}
+  if(parent)parent.appendChild(e);return e;
+}
+function tw(s,size){var w=0;for(var i=0;i<s.length;i++){w+=s.charCodeAt(i)>255?size:size*0.58}return w}
+function trunc(s,max,size){
+  if(tw(s,size)<=max)return s;
+  var out='';for(var i=0;i<s.length;i++){if(tw(out+s[i]+'…',size)>max)break;out+=s[i]}
+  return out+'…';
+}
+function applyView(){
+  var t='translate('+view.x+' '+view.y+') scale('+view.k+')';
+  gWorld.setAttribute('transform',t);
+  $('#grid').setAttribute('patternTransform',t);
+}
+function toWorld(cx,cy){var r=svg.getBoundingClientRect();return {x:(cx-r.left-view.x)/view.k,y:(cy-r.top-view.y)/view.k}}
+function fitView(){
+  planFit=true;
+  var sh=cur(),r=svg.getBoundingClientRect();
+  var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,any=false;
+  sh.nodes.forEach(function(n){if(isChild(sh,n))return;any=true;x0=Math.min(x0,n.x);y0=Math.min(y0,n.y);x1=Math.max(x1,n.x+NW);y1=Math.max(y1,n.y+layout(sh,n).h)});
+  (sh.groups||[]).forEach(function(g){any=true;x0=Math.min(x0,g.x);y0=Math.min(y0,g.y);x1=Math.max(x1,g.x+g.w);y1=Math.max(y1,g.y+g.h)});
+  if(!any||!r.width){view={x:40,y:60,k:1};return}
+  var padTop=70,pad=24,bw=x1-x0,bh=y1-y0;
+  var k=Math.min((r.width-pad*2)/bw,(r.height-padTop-pad)/bh,1.2);
+  k=Math.max(0.2,k);
+  view={k:k,x:(r.width-bw*k)/2-x0*k,y:padTop+((r.height-padTop-pad)-bh*k)/2-y0*k};
+}
+function zoomAt(cx,cy,f){
+  var r=svg.getBoundingClientRect();var px=cx-r.left,py=cy-r.top;
+  var k=Math.min(2.5,Math.max(0.2,view.k*f));var real=k/view.k;
+  view.x=px-(px-view.x)*real;view.y=py-(py-view.y)*real;view.k=k;applyView();
+}
+
+/* ---------- render ---------- */
+var conn=null; // {fixed:{n,p}, cable:null|obj, end:'from'|'to'|null, x,y, hover}
+var cutLine=null, wcand=null;
+var GROUP_COLORS=[{id:'red',label:'赤'},{id:'orange',label:'橙'},{id:'yellow',label:'黄'},{id:'green',label:'緑'},{id:'teal',label:'青緑'},{id:'blue',label:'青'},{id:'purple',label:'紫'},{id:'gray',label:'灰'}];
+function cableLabel(c,type,selected){
+  var s=(selected?CT[type].short+' ':'')+(c.len||'')+(c.memo&&(selected||c.len)?(c.len?' ':'')+c.memo:'');
+  if(!selected&&!c.len)return '';
+  return s.trim();
+}
+function render(){
+  var sh=cur(),used=usedMap(sh);
+  gGroups.replaceChildren();gCables.replaceChildren();gNodes.replaceChildren();gTmp.replaceChildren();
+  (sh.groups||[]).forEach(function(g){
+    var isSel=sel&&sel.kind==='group'&&sel.id===g.id;
+    var ge=el('g',{'class':'grp c-'+g.color+(isSel?' sel':''),'data-group':g.id},gGroups);
+    el('rect',{'class':'gbody',x:g.x,y:g.y,width:g.w,height:g.h,rx:14},ge);
+    el('path',{'class':'gbar','data-gbar':g.id,d:'M'+g.x+' '+(g.y+28)+' V'+(g.y+14)+' a14 14 0 0 1 14 -14 H'+(g.x+g.w-14)+' a14 14 0 0 1 14 14 V'+(g.y+28)+' Z'},ge);
+    var tt=el('text',{'class':'gtitle',x:g.x+12,y:g.y+19},ge);tt.textContent=trunc(g.name||'グループ',g.w-40,13);
+    el('rect',{'class':'gres','data-gres':g.id,x:g.x+g.w-18,y:g.y+g.h-18,width:18,height:18,rx:4},ge);
+  });
+  computeCables(sh).forEach(function(cv){
+    var c=cv.c,isSel=sel&&sel.kind==='cable'&&sel.id===c.id;
+    var g=el('g',{'class':'cable '+tcls(cv.type)+(isSel?' sel':''),'data-cable':c.id},gCables);
+    el('path',{'class':'halo',d:cv.d},g);
+    var vis=el('path',{'class':'vis',d:cv.d},g);
+    var dash=CT[cv.type].dash;if(dash)vis.setAttribute('stroke-dasharray',dash);
+    el('path',{'class':'hit',d:cv.d},g);
+    var label=cableLabel(c,cv.type,isSel);
+    if(label){
+      var w=tw(label,11)+14;
+      el('rect',{'class':'pill',x:cv.mid.x-w/2,y:cv.mid.y-10,width:w,height:20,rx:10},g);
+      var tx=el('text',{x:cv.mid.x,y:cv.mid.y+4,'text-anchor':'middle'},g);tx.textContent=label;
+    }
+  });
+  var fixedPort=null;
+  if(conn){var fn=nodeById(sh,conn.fixed.n);fixedPort=portOf(fn,conn.fixed.p)}
+  var draw=sh.nodes.filter(function(n){return !isChild(sh,n)});
+  var isSelN=function(n){var c=childOf(sh,n);return sel&&sel.kind==='node'&&(sel.id===n.id||(c&&sel.id===c.id))?1:0};
+  draw.sort(function(a,b){return isSelN(a)-isSelN(b)});
+  draw.forEach(function(n){
+    var L=layout(sh,n),h=L.h,ch=L.child,isSel=!!isSelN(n);
+    var g=el('g',{'class':'node'+(isSel?' sel':''),'data-node':n.id,transform:'translate('+n.x+' '+n.y+')',style:'cursor:move'},gNodes);
+    var title=el('title',{},g);title.textContent=n.name+(ch?' + '+ch.name:'')+(n.note?'('+n.note+')':'')+(n.ip?' IP:'+n.ip:'')+(n.res?' '+n.res:'')+(n.memo?' / '+n.memo:'');
+    if(wcand&&drag&&(n.id===drag.id||n.id===wcand)){
+      el('rect',{x:-6,y:-6,width:NW+12,height:h+12,rx:14,fill:'none',stroke:'var(--sel)','stroke-width':2,'stroke-dasharray':'6 4'},g);
+      if(n.id===drag.id){var ht=el('text',{x:NW/2,y:-12,'text-anchor':'middle','font-size':12,'font-weight':700},g);ht.textContent='離すと合体';ht.style.fill='var(--sel)'}
+    }
+    el('rect',{'class':'card',x:0,y:0,width:NW,height:h,rx:9},g);
+    el('path',{'class':'hdr',d:'M0 '+HH+' V9 a9 9 0 0 1 9 -9 H'+(NW-9)+' a9 9 0 0 1 9 9 V'+HH+' Z'},g);
+    var tx0=40;
+    el('use',{'class':'ic',href:'#ic-'+(NT[n.type]?n.type:'other'),x:9,y:8,width:24,height:24},g);
+    if(ch){el('use',{'class':'ic',href:'#ic-'+(NT[ch.type]?ch.type:'other'),x:34,y:8,width:24,height:24},g);tx0=64}
+    var hasCfg=!!(n.ip||n.res||n.memo);
+    if(hasCfg){
+      var bd=el('g',{'class':'cfgb'},g);bd.appendChild(document.createElementNS('http://www.w3.org/2000/svg','title')).textContent='設定メモあり';
+      el('rect',{x:NW-22,y:5,width:14,height:12,rx:3,fill:'none',stroke:'var(--muted)','stroke-width':1.3},bd);
+      el('path',{d:'M'+(NW-19)+' 9h8M'+(NW-19)+' 13h5',stroke:'var(--muted)','stroke-width':1.3,'stroke-linecap':'round',fill:'none'},bd);
+    }
+    var nm=el('text',{x:tx0,y:19,'font-size':13,'font-weight':700},g);nm.textContent=trunc(n.name||'(名称なし)',NW-tx0-8-(hasCfg?16:0),13);
+    var nt=el('text',{'class':'sub',x:tx0,y:33,'font-size':10.5},g);nt.textContent=trunc(ch?('+ '+(ch.name||'')):(n.note||''),NW-tx0-8,10.5);
+    L.seps.forEach(function(sp){
+      el('line',{x1:8,y1:sp.y+2,x2:NW-8,y2:sp.y+2,stroke:'var(--line)','stroke-width':1},g);
+      var st=el('text',{'class':'sub',x:NW/2,y:sp.y+RH-5,'text-anchor':'middle','font-size':10.5,'font-weight':700},g);st.textContent=trunc(sp.node.name||'',NW-24,10.5);
+    });
+    Object.keys(L.sockets).forEach(function(pid){
+      var s=L.sockets[pid],p=s.port,owner=s.node;
+      var cls='sock '+tcls(p.type)+(used[owner.id+'|'+p.id]?' on':'');
+      var r=5.5;
+      if(conn){
+        if(owner.id!==conn.fixed.n&&fixedPort&&compat(fixedPort,p)){cls+=' ok'}
+        else if(!(owner.id===conn.fixed.n&&p.id===conn.fixed.p)){cls+=' dim'}
+        if(conn.hover&&conn.hover.node.id===owner.id&&conn.hover.port.id===p.id&&owner.id!==conn.fixed.n&&fixedPort&&compat(fixedPort,p))r=8;
+      }
+      el('circle',{'class':cls,cx:s.rx,cy:s.ry,r:r},g);
+      var lab=el('text',{'class':'plab',x:p.dir==='in'?s.rx+11:s.rx-11,y:s.ry+4,'text-anchor':p.dir==='in'?'start':'end'},g);
+      lab.textContent=trunc(p.label||'',NW/2-14,11);
+      el('circle',{'class':'sockhit','data-socket':owner.id+'|'+p.id,cx:s.rx,cy:s.ry,r:10},g);
+    });
+  });
+  if(conn&&fixedPort){
+    var fs=sockOf(sh,conn.fixed.n,conn.fixed.p);
+    if(fs){
+      var endPos={x:conn.x,y:conn.y},endDir=fs.dir==='in'?'out':'in';
+      if(conn.hover&&conn.hover.node.id!==conn.fixed.n&&compat(fixedPort,conn.hover.port)){endPos={x:conn.hover.x,y:conn.hover.y};endDir=conn.hover.dir}
+      var t0=fixedPort.type==='other'&&conn.hover?conn.hover.port.type:fixedPort.type;
+      var cv=curve(fs,fs.dir,endPos,endDir);
+      var tp=el('path',{'class':'tmp '+tcls(t0),d:cv.d},gTmp);
+      tp.style.stroke='var(--c-'+(CT[t0]?t0:'other')+')';
+    }
+  }
+  if(cutLine){el('line',{'class':'cutline',x1:cutLine.x0,y1:cutLine.y0,x2:cutLine.x1,y2:cutLine.y1},gTmp)}
+}
+/* 重なり解消・合体 */
+function overlapsList(sh,list,x,y,h){return list.some(function(o){var oh=layout(sh,o).h;return x<o.x+NW+16&&x+NW+16>o.x&&y<o.y+oh+16&&y+h+16>o.y})}
+function freeSpot(sh,list,n){
+  var h=layout(sh,n).h;
+  if(!overlapsList(sh,list,n.x,n.y,h))return null;
+  var step=12;
+  for(var r=1;r<=70;r++){
+    var c=[];for(var dx=-r;dx<=r;dx++)for(var dy=-r;dy<=r;dy++){if(Math.max(Math.abs(dx),Math.abs(dy))===r)c.push([dx,dy])}
+    c.sort(function(a,b){return a[0]*a[0]+a[1]*a[1]-b[0]*b[0]-b[1]*b[1]});
+    for(var i=0;i<c.length;i++){var x=n.x+c[i][0]*step,y=n.y+c[i][1]*step;if(!overlapsList(sh,list,x,y,h))return {x:x,y:y}}
+  }
+  return null;
+}
+function resolveOne(sh,n){
+  var list=sh.nodes.filter(function(o){return o!==n&&!isChild(sh,o)});
+  var s=freeSpot(sh,list,n);if(s){n.x=s.x;n.y=s.y;return true}return false;
+}
+function resolveAllWire(sh){
+  var vis=sh.nodes.filter(function(n){return !isChild(sh,n)}).sort(function(a,b){return a.y-b.y||a.x-b.x});
+  var fixed=[],moved=false;
+  vis.forEach(function(n){var s=freeSpot(sh,fixed,n);if(s){n.x=s.x;n.y=s.y;moved=true}fixed.push(n)});
+  return moved;
+}
+function findWireMerge(sh,n){
+  var L=layout(sh,n),best=null,bd=1e9;
+  sh.nodes.forEach(function(o){
+    if(o===n||isChild(sh,o))return;
+    var ok=false;
+    if(n.type==='camera'&&isKaeshi(o)&&!childOf(sh,n))ok=true;
+    if(isKaeshi(n)&&o.type==='camera'&&!childOf(sh,o))ok=true;
+    if(!ok)return;
+    var oh=layout(sh,o).h;
+    var dx=Math.max(0,Math.max(o.x-(n.x+NW),n.x-(o.x+NW))),dy=Math.max(0,Math.max(o.y-(n.y+L.h),n.y-(o.y+oh)));
+    var d=Math.hypot(dx,dy);if(d<=28&&d<bd){bd=d;best=o.id}
+  });
+  return best;
+}
+function groupMembers(sh,g){
+  var out=[];
+  sh.nodes.forEach(function(n){
+    if(isChild(sh,n))return;
+    var h=layout(sh,n).h,cx=n.x+NW/2,cy=n.y+h/2;
+    if(cx>=g.x&&cx<=g.x+g.w&&cy>=g.y&&cy<=g.y+g.h){out.push(n);var c=childOf(sh,n);if(c)out.push(c)}
+  });
+  return out;
+}
+function addGroup(){
+  pushUndo();var sh=cur();if(!sh.groups)sh.groups=[];
+  var g={id:uid(),name:'グループ'+(sh.groups.length+1),color:GROUP_COLORS[sh.groups.length%GROUP_COLORS.length].id,x:0,y:0,w:380,h:280};
+  var n=sel&&sel.kind==='node'?nodeById(sh,sel.id):null;
+  if(n){var host=hostOf(sh,n)||n;g.x=host.x-24;g.y=host.y-44;g.w=NW+48;g.h=layout(sh,host).h+68}
+  else{var r=svg.getBoundingClientRect(),p=toWorld(r.left+r.width/2,r.top+r.height/2);g.x=Math.round((p.x-g.w/2)/6)*6;g.y=Math.round((p.y-g.h/2)/6)*6}
+  sh.groups.push(g);sel={kind:'group',id:g.id};renderAll();changed();
+}
+function wireMerge(sh,a,b){
+  var na=nodeById(sh,a),nb=nodeById(sh,b);if(!na||!nb)return null;
+  var cam=na.type==='camera'?na:nb,mon=cam===na?nb:na;
+  pushUndoBefore2();
+  doAttach(pl(),mon.id,cam.id);return cam;
+}
+function pushUndoBefore2(){/* 呼び出し元で直前に pushUndo 済み */}
+function wireDetach(monId){
+  var sh=cur(),p=pl(),host=nodeById(sh,(sh.pairs||{})[monId]),m=nodeById(sh,monId);
+  doDetach(p,monId);
+  if(host&&m){m.x=host.x+NW+40;m.y=host.y}
+}
+function renderTabs(){
+  var box=$('#tabs');box.replaceChildren();
+  state.sheets.forEach(function(s){
+    var b=document.createElement('button');b.type='button';b.className='tab';b.setAttribute('role','tab');
+    b.setAttribute('aria-selected',s.id===state.active?'true':'false');b.textContent=s.name||'(無題)';
+    b.addEventListener('click',function(){switchSheet(s.id)});box.appendChild(b);
+  });
+  var add=document.createElement('button');add.type='button';add.className='btn';add.textContent='＋ シート';
+  add.addEventListener('click',function(){
+    pushUndo();var s={id:uid(),name:'シート'+(state.sheets.length+1),nodes:[],cables:[],plan:defaultPlan()};
+    state.sheets.push(s);state.active=s.id;sel=null;fitView();renderAll();changed();
+  });
+  box.appendChild(add);
+}
+function switchSheet(id){state.active=id;sel=null;conn=null;fitView();renderAll();changed()}
+function renderChips(){
+  var box=$('#chips');box.replaceChildren();
+  CABLE_TYPES.forEach(function(t){
+    var b=document.createElement('span');b.className='chip t-'+t.id;b.style.cursor='default';
+    b.innerHTML='<i></i>'+esc(t.label);box.appendChild(b);
+  });
+}
+function renderPalette(){
+  var box=$('#palette');
+  NODE_TYPES.forEach(function(t){
+    var b=document.createElement('button');b.type='button';b.className='pal';b.draggable=true;b.title='クリックで追加 / キャンバスへドラッグ';
+    b.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><use href="#ic-'+t.id+'"/></svg><span>'+esc(t.label)+'</span>';
+    b.addEventListener('click',function(){
+      var r=svg.getBoundingClientRect();var p=toWorld(r.left+r.width/2+(Math.random()*60-30),r.top+r.height/2+(Math.random()*60-30));
+      addNode(t.id,p.x-NW/2,p.y-40);
+    });
+    b.addEventListener('dragstart',function(e){e.dataTransfer.setData('text/plain','node:'+t.id);e.dataTransfer.effectAllowed='copy'});
+    box.appendChild(b);
+  });
+  var gh=document.createElement('h2');gh.textContent='枠';gh.style.marginTop='6px';box.appendChild(gh);
+  var gb=document.createElement('button');gb.type='button';gb.className='pal';gb.title='機材をまとめる色付きの枠を追加';
+  gb.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><use href="#ic-frame"/></svg><span>グループ枠</span>';
+  gb.addEventListener('click',addGroup);box.appendChild(gb);
+}
+function addNode(type,x,y){
+  pushUndo();var sh=cur();
+  var n={id:uid(),type:type,x:Math.round(x/6)*6,y:Math.round(y/6)*6,name:NT[type].label,note:'',ports:defaultPorts(type)};
+  sh.nodes.push(n);sel={kind:'node',id:n.id};renderAll();changed();
+}
+svg.addEventListener('dragover',function(e){e.preventDefault()});
+svg.addEventListener('drop',function(e){
+  e.preventDefault();var d=(e.dataTransfer.getData('text/plain')||'');
+  if(d.indexOf('node:')!==0)return;var type=d.slice(5);if(!NT[type])return;
+  var p=toWorld(e.clientX,e.clientY);addNode(type,p.x-NW/2,p.y-40);
+});
+
+/* ---------- inspector ---------- */
+function summaryHtml(sh){
+  var m={},order={};
+  CABLE_TYPES.forEach(function(t,i){order[t.id]=i});
+  sh.cables.forEach(function(c){
+    var t=ctypeOf(sh,c);var len=c.len||'長さ未設定';var k=t+'|'+len;
+    m[k]=(m[k]||{type:t,len:len,n:0});m[k].n++;
+  });
+  var rows=Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return order[a.type]-order[b.type]||a.len.localeCompare(b.len,'ja',{numeric:true})});
+  var cab=rows.length?'<ul class="list">'+rows.map(function(r){
+    return '<li><span class="k '+tcls(r.type)+'"><i></i>'+esc(CT[r.type].short+' '+r.len)+'</span><span class="n">'+r.n+' 本</span></li>';
+  }).join('')+'</ul>':'<div class="empty">ケーブルはまだありません。</div>';
+  var eq=sh.nodes.length?'<ul class="list">'+sh.nodes.map(function(n){
+    return '<li><span class="k">'+esc(n.name||'(名称なし)')+(n.note?'<span class="note">'+esc(n.note)+'</span>':'')+(n.ip?'<span class="note">IP '+esc(n.ip)+'</span>':'')+(n.res?'<span class="note">'+esc(n.res)+'</span>':'')+(n.memo?'<span class="note" style="white-space:pre-wrap">'+esc(n.memo)+'</span>':'')+'</span><span class="n">'+esc(NT[n.type]?NT[n.type].label:'')+'</span></li>';
+  }).join('')+'</ul>':'<div class="empty">機材はまだありません。</div>';
+  return '<div><h2>ケーブル集計(持ち出し用)</h2>'+cab+'</div><div><h2>機材一覧('+sh.nodes.length+')</h2>'+eq+'</div>';
+}
+function typeOptions(list,val){return list.map(function(t){return '<option value="'+t.id+'"'+(t.id===val?' selected':'')+'>'+esc(t.label)+'</option>'}).join('')}
+function endLabel(sh,e){var n=nodeById(sh,e.n),p=portOf(n,e.p);return (n?n.name:'?')+' / '+(p?p.label:'?')}
+function bindInput(inp,apply){
+  var first=true;
+  inp.addEventListener('focus',function(){first=true});
+  inp.addEventListener('input',function(e){
+    if(first){pushUndo();first=false}
+    apply(e.target.value);render();changed();
+  });
+}
+function renderSide(){
+  var sh=cur(),side=$('#side');
+  if(sel&&sel.kind==='node'){
+    var n=nodeById(sh,sel.id);if(!n){sel=null;return renderSide()}
+    var used=usedMap(sh),ch=childOf(sh,n),hst=hostOf(sh,n);
+    var portRows=n.ports.map(function(p,i){
+      return '<div class="prow t-'+(CT[p.type]?p.type:'other')+'" data-i="'+i+'">'+
+        '<span class="pd" title="'+(used[n.id+'|'+p.id]?'接続中':'空き')+'"></span>'+
+        '<input class="pl" aria-label="端子名" value="'+esc(p.label)+'">'+
+        '<select class="pt" aria-label="端子の種類">'+typeOptions(CABLE_TYPES,p.type)+'</select>'+
+        '<select class="pdr" aria-label="位置"><option value="in"'+(p.dir==='in'?' selected':'')+'>左</option><option value="out"'+(p.dir==='out'?' selected':'')+'>右</option></select>'+
+        '<button class="x" type="button" aria-label="端子を削除">✕</button></div>';
+    }).join('');
+    var pairHtml='';
+    if(ch){
+      pairHtml='<div class="field"><label>セットの返しモニター</label><div class="row" style="align-items:center"><span style="flex:1;min-width:0;font-weight:700">'+esc(ch.name)+'</span><button class="btn" id="open-ch" type="button">設定を開く</button><button class="btn" id="detach" type="button">分離</button></div></div>';
+    }else if(hst){
+      pairHtml='<div class="field"><label>合体中(カメラ側のカードに表示されています)</label><div class="row" style="align-items:center"><span style="flex:1;min-width:0;font-weight:700">'+esc(hst.name)+'</span><button class="btn" id="open-host" type="button">カメラを開く</button><button class="btn" id="detach" type="button">分離</button></div></div>';
+    }else if(n.type==='camera'||n.type==='monitor'){
+      var cands=sh.nodes.filter(function(o){
+        if(o===n||isChild(sh,o))return false;
+        if(n.type==='camera')return o.type==='monitor'&&!childOf(sh,n);
+        return o.type==='camera'&&!childOf(sh,o);
+      });
+      if(cands.length){
+        pairHtml='<div class="field"><label for="mg-sel">'+(n.type==='camera'?'返しモニターを合体':'カメラに合体')+'</label><div class="row addp"><select id="mg-sel">'+cands.map(function(o){return '<option value="'+o.id+'">'+esc(o.name)+'</option>'}).join('')+'</select><button class="btn" id="mg-go" type="button">合体</button></div>'+
+          '<div class="note">図の上で近づけても合体できます。</div></div>';
+      }
+    }
+    side.innerHTML='<div><h2>機材の設定</h2></div>'+
+      '<div class="field"><label for="f-name">名前</label><input id="f-name" value="'+esc(n.name)+'"></div>'+
+      '<div class="field"><label for="f-type">アイコン</label><select id="f-type">'+typeOptions(NODE_TYPES,n.type)+'</select></div>'+
+      '<div class="field"><label for="f-note">型番・メモ</label><input id="f-note" value="'+esc(n.note)+'" placeholder="例: Cam1 / HXR-NX800" autocomplete="off"></div>'+
+      '<div class="field"><label for="f-ip">IPアドレス</label><input id="f-ip" value="'+esc(n.ip||'')+'" placeholder="例: 192.168.1.21" autocomplete="off" inputmode="decimal"></div>'+
+      '<div class="field"><label for="f-res">出力・解像度の設定</label><input id="f-res" value="'+esc(n.res||'')+'" placeholder="例: 1080/59.94p ・ SDI 3G-A" autocomplete="off"></div>'+
+      '<div class="field"><label for="f-memo">設定メモ</label><textarea id="f-memo" placeholder="例: ホワイトバランス 5600K / NDフィルター 1/16 / 音声CH1=ガン CH2=ピン">'+esc(n.memo||'')+'</textarea></div>'+
+      pairHtml+
+      '<div><h2>端子(左=入力側 / 右=出力側)</h2><div class="ports">'+portRows+'</div>'+
+      '<div class="row addp"><select id="np-type" aria-label="追加する端子の種類">'+typeOptions(CABLE_TYPES,'hdmi')+'</select>'+
+      '<select id="np-dir" aria-label="追加する位置"><option value="in">左</option><option value="out">右</option></select>'+
+      '<button class="btn" id="np-add" type="button">＋ 端子を追加</button></div></div>'+
+      '<div class="row"><button class="btn danger" id="f-del" type="button">この機材を削除</button></div>';
+    bindInput($('#f-name'),function(v){n.name=v});
+    bindInput($('#f-note'),function(v){n.note=v});
+    bindInput($('#f-ip'),function(v){n.ip=v});bindInput($('#f-res'),function(v){n.res=v});bindInput($('#f-memo'),function(v){n.memo=v});
+    $('#f-type').addEventListener('change',function(e){pushUndo();n.type=e.target.value;renderAll();changed()});
+    $('#np-add').addEventListener('click',function(){
+      pushUndo();var t=$('#np-type').value,d=$('#np-dir').value;
+      n.ports.push({id:uid(),dir:d,type:t,label:CT[t].short+(d==='in'?' IN':' OUT')});renderAll();changed();
+    });
+    side.querySelectorAll('.prow').forEach(function(row){
+      var p=n.ports[+row.getAttribute('data-i')];
+      bindInput(row.querySelector('.pl'),function(v){p.label=v});
+      row.querySelector('.pt').addEventListener('change',function(e){pushUndo();p.type=e.target.value;renderAll();changed()});
+      row.querySelector('.pdr').addEventListener('change',function(e){pushUndo();p.dir=e.target.value;renderAll();changed()});
+      row.querySelector('.x').addEventListener('click',function(){
+        pushUndo();n.ports=n.ports.filter(function(q){return q!==p});
+        sh.cables=sh.cables.filter(function(c){return !((c.from.n===n.id&&c.from.p===p.id)||(c.to.n===n.id&&c.to.p===p.id))});
+        renderAll();changed();
+      });
+    });
+    if($('#open-ch'))$('#open-ch').addEventListener('click',function(){setSel({kind:'node',id:ch.id})});
+    if($('#open-host'))$('#open-host').addEventListener('click',function(){setSel({kind:'node',id:hst.id})});
+    if($('#detach'))$('#detach').addEventListener('click',function(){
+      pushUndo();var mon=ch?ch:n;wireDetach(mon.id);sel={kind:'node',id:mon.id};renderAll();changed();
+    });
+    if($('#mg-go'))$('#mg-go').addEventListener('click',function(){
+      var other=$('#mg-sel').value;pushUndo();var cam=wireMerge(sh,n.id,other);
+      if(cam)sel={kind:'node',id:cam.id};renderAll();changed();
+    });
+    $('#f-del').addEventListener('click',deleteSel);
+  }else if(sel&&sel.kind==='group'){
+    var g=groupById(sh,sel.id);if(!g){sel=null;return renderSide()}
+    var cnt=groupMembers(sh,g).filter(function(o){return !isChild(sh,o)}).length;
+    side.innerHTML='<div><h2>グループ枠の設定</h2><div class="note">枠の中にある機材 '+cnt+' 台が、枠と一緒に動きます。枠の右下の■をドラッグするとサイズを変えられます。</div></div>'+
+      '<div class="field"><label for="g-name">名前</label><input id="g-name" value="'+esc(g.name)+'"></div>'+
+      '<div class="field"><label>色</label><div class="sw">'+GROUP_COLORS.map(function(c){
+        return '<button type="button" class="swb c-'+c.id+'" data-c="'+c.id+'" aria-label="'+c.label+'" aria-pressed="'+(g.color===c.id)+'"></button>';}).join('')+'</div></div>'+
+      '<div class="dims"><span>幅</span><input id="g-w" type="number" min="140" step="10" value="'+Math.round(g.w)+'"><span>高さ</span><input id="g-h" type="number" min="90" step="10" value="'+Math.round(g.h)+'"></div>'+
+      '<div class="row"><button class="btn danger" id="g-del" type="button">枠を削除(機材は残ります)</button></div>';
+    bindInput($('#g-name'),function(v){g.name=v});
+    side.querySelectorAll('.swb').forEach(function(b){b.addEventListener('click',function(){pushUndo();g.color=b.getAttribute('data-c');render();renderSide();changed()})});
+    [['#g-w','w',140],['#g-h','h',90]].forEach(function(d){
+      var i=$(d[0]);i.addEventListener('focus',function(){i._f=true});
+      i.addEventListener('input',function(){var v=parseFloat(i.value);if(isNaN(v)||v<d[2])return;if(i._f){pushUndo();i._f=false}g[d[1]]=v;render();changed()});
+    });
+    $('#g-del').addEventListener('click',deleteSel);
+  }else if(sel&&sel.kind==='cable'){
+    var c=cableById(sh,sel.id);if(!c){sel=null;return renderSide()}
+    var ty=ctypeOf(sh,c);
+    side.innerHTML='<div><h2>ケーブルの設定</h2>'+
+      '<div class="note">'+esc(endLabel(sh,c.from))+'<br>→ '+esc(endLabel(sh,c.to))+'</div></div>'+
+      '<div class="field"><label>種類(端子の色で決まります)</label><div class="chip '+tcls(ty)+'" style="width:fit-content;cursor:default"><i></i>'+esc(CT[ty].label)+'</div></div>'+
+      '<div class="field"><label for="f-len">長さ</label><input id="f-len" value="'+esc(c.len)+'" placeholder="例: 10m" autocomplete="off"></div>'+
+      '<div class="field"><label for="f-memo">メモ</label><input id="f-memo" value="'+esc(c.memo)+'" placeholder="例: Cam1映像" autocomplete="off"></div>'+
+      '<div class="row"><button class="btn danger" id="f-del" type="button">ケーブルを外す</button></div>';
+    bindInput($('#f-len'),function(v){c.len=v});
+    bindInput($('#f-memo'),function(v){c.memo=v});
+    $('#f-del').addEventListener('click',deleteSel);
+  }else{
+    side.innerHTML='<div class="field"><label for="f-sheet">シート名(現場名など)</label><input id="f-sheet" value="'+esc(sh.name)+'"></div>'+
+      summaryHtml(sh)+
+      '<div class="note">端子(○)をドラッグして、同じ色の端子につなぎます。つないだ端子をつかんで別の端子に離すと付け替え、空白で離すと外れます。Alt(Option)を押しながらドラッグすると、通った線をまとめて切断できます。左の「グループ枠」で機材を色付きの枠にまとめられます。</div>'+
+      '<div class="row"><button class="btn danger" id="f-delsheet" type="button"'+(state.sheets.length<2?' disabled':'')+'>このシートを削除</button></div>';
+    bindInput($('#f-sheet'),function(v){sh.name=v;renderTabs()});
+    $('#f-delsheet').addEventListener('click',function(){
+      if(state.sheets.length<2)return;
+      var btn=$('#f-delsheet');
+      if(btn.dataset.armed!=='1'){btn.dataset.armed='1';btn.textContent='もう一度押すと削除';return}
+      pushUndo();state.sheets=state.sheets.filter(function(s){return s.id!==sh.id});state.active=state.sheets[0].id;sel=null;fitView();renderAll();changed();
+    });
+  }
+}
+function deleteSel(){
+  if(!sel)return;pushUndo();var sh=cur();
+  if(sel.kind==='node'){
+    var id=sel.id;
+    Object.keys(sh.pairs||{}).forEach(function(k){if(k===id||sh.pairs[k]===id)delete sh.pairs[k]});
+    sh.nodes=sh.nodes.filter(function(n){return n.id!==id});
+    sh.cables=sh.cables.filter(function(c){return c.from.n!==id&&c.to.n!==id});
+  }else if(sel.kind==='group'){sh.groups=(sh.groups||[]).filter(function(g){return g.id!==sel.id})}
+  else sh.cables=sh.cables.filter(function(c){return c.id!==sel.id});
+  sel=null;renderAll();changed();
+}
+function setSel(s){sel=s;render();renderSide()}
+function renderAll(){renderTabs();applyView();render();renderSide();if(viewMode==='plan')renderPlanAll()}
+
+/* ---------- pointer interaction ---------- */
+var ptrs=new Map(),mode=null,drag=null,pan=null,pinch=null,pend=null,gd=null;
+function parseSock(str){var a=str.split('|');return {n:a[0],p:a[1]}}
+function startConn(fixed,cable,end,p){
+  conn={fixed:fixed,cable:cable,end:end,x:p.x,y:p.y,hover:null};mode='conn';render();
+}
+svg.addEventListener('pointerdown',function(e){
+  if(e.button!==undefined&&e.button>0)return;
+  try{svg.setPointerCapture(e.pointerId)}catch(_){}
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2){
+    var pts=Array.from(ptrs.values());
+    pinch={d:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)||1,k:view.k,mx:(pts[0].x+pts[1].x)/2,my:(pts[0].y+pts[1].y)/2,vx:view.x,vy:view.y};
+    mode='pinch';conn=null;drag=null;pan=null;pend=null;gd=null;wcand=null;render();return;
+  }
+  var t=e.target,sh=cur();
+  var sk=t.closest&&t.closest('[data-socket]');
+  var nEl=t.closest&&t.closest('[data-node]');
+  var cEl=t.closest&&t.closest('[data-cable]');
+  var rEl=t.closest&&t.closest('[data-gres]');
+  var bEl=t.closest&&t.closest('[data-gbar]');
+  var w=toWorld(e.clientX,e.clientY);
+  if(sk){
+    var s=parseSock(sk.getAttribute('data-socket'));
+    var cab=usedMap(sh)[s.n+'|'+s.p];
+    e.preventDefault();
+    if(cab){mode='sockpend';pend={cable:cab,sock:s,sx:e.clientX,sy:e.clientY}}
+    else{setSel({kind:'node',id:s.n});startConn(s,null,null,w)}
+  }else if(nEl){
+    var id=nEl.getAttribute('data-node'),n=nodeById(sh,id);
+    mode='drag';drag={id:id,dx:w.x-n.x,dy:w.y-n.y,moved:false};
+    if(!(sel&&sel.kind==='node'&&sel.id===id))setSel({kind:'node',id:id});
+  }else if(rEl){
+    var g=groupById(sh,rEl.getAttribute('data-gres'));
+    mode='gres';gd={id:g.id,w:g.w,h:g.h,sx:w.x,sy:w.y,moved:false};
+    if(!(sel&&sel.kind==='group'&&sel.id===g.id))setSel({kind:'group',id:g.id});
+  }else if(bEl){
+    var g2=groupById(sh,bEl.getAttribute('data-gbar'));
+    mode='gdrag';
+    gd={id:g2.id,ox:g2.x,oy:g2.y,sx:w.x,sy:w.y,moved:false,members:groupMembers(sh,g2).map(function(m){return {n:m,x:m.x,y:m.y}})};
+    if(!(sel&&sel.kind==='group'&&sel.id===g2.id))setSel({kind:'group',id:g2.id});
+  }else if(cEl){
+    setSel({kind:'cable',id:cEl.getAttribute('data-cable')});mode=null;
+  }else if(e.altKey||e.ctrlKey||e.metaKey){
+    mode='cut';cutLine={x0:w.x,y0:w.y,x1:w.x,y1:w.y};render();
+  }else{
+    mode='pan';pan={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false};svg.classList.add('panning');
+  }
+});
+svg.addEventListener('pointermove',function(e){
+  if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(mode==='pinch'&&pinch&&ptrs.size>=2){
+    var pts=Array.from(ptrs.values());
+    var d=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)||1;
+    var k=Math.min(2.5,Math.max(0.15,pinch.k*d/pinch.d));
+    var r=svg.getBoundingClientRect();var px=pinch.mx-r.left,py=pinch.my-r.top;var real=k/pinch.k;
+    var cx=(pts[0].x+pts[1].x)/2-pinch.mx,cy=(pts[0].y+pts[1].y)/2-pinch.my;
+    view.k=k;view.x=px-(px-pinch.vx)*real+cx;view.y=py-(py-pinch.vy)*real+cy;applyView();return;
+  }
+  var sh=cur();
+  if(mode==='sockpend'&&pend){
+    if(Math.hypot(e.clientX-pend.sx,e.clientY-pend.sy)>4){
+      var c=pend.cable;
+      var end=(c.from.n===pend.sock.n&&c.from.p===pend.sock.p)?'from':'to';
+      var fixed=end==='from'?{n:c.to.n,p:c.to.p}:{n:c.from.n,p:c.from.p};
+      pushUndo();
+      sh.cables=sh.cables.filter(function(q){return q.id!==c.id});
+      var w0=toWorld(e.clientX,e.clientY);
+      sel=null;
+      startConn(fixed,c,end,w0);renderSide();pend=null;
+    }
+    return;
+  }
+  if(mode==='drag'&&drag){
+    var n=nodeById(sh,drag.id);if(!n)return;
+    var p=toWorld(e.clientX,e.clientY);
+    var nx=Math.round((p.x-drag.dx)/6)*6,ny=Math.round((p.y-drag.dy)/6)*6;
+    if(nx!==n.x||ny!==n.y){
+      if(!drag.moved){pushUndo();drag.moved=true}
+      n.x=nx;n.y=ny;wcand=findWireMerge(sh,n);render();
+    }
+  }else if(mode==='gdrag'&&gd){
+    var g=groupById(sh,gd.id);if(!g)return;
+    var q=toWorld(e.clientX,e.clientY);
+    var dx=Math.round((q.x-gd.sx)/6)*6,dy=Math.round((q.y-gd.sy)/6)*6;
+    if(dx||dy){
+      if(!gd.moved){pushUndo();gd.moved=true}
+      g.x=gd.ox+dx;g.y=gd.oy+dy;gd.members.forEach(function(m){m.n.x=m.x+dx;m.n.y=m.y+dy});render();
+    }
+  }else if(mode==='gres'&&gd){
+    var g3=groupById(sh,gd.id);if(!g3)return;
+    var q3=toWorld(e.clientX,e.clientY);
+    var nw=Math.max(140,Math.round((gd.w+q3.x-gd.sx)/6)*6),nh=Math.max(90,Math.round((gd.h+q3.y-gd.sy)/6)*6);
+    if(nw!==g3.w||nh!==g3.h){if(!gd.moved){pushUndo();gd.moved=true}g3.w=nw;g3.h=nh;render()}
+  }else if(mode==='conn'&&conn){
+    var q2=toWorld(e.clientX,e.clientY);conn.x=q2.x;conn.y=q2.y;
+    var h=socketAt(sh,q2,view.k);
+    conn.hover=h&&h.node.id!==conn.fixed.n?h:null;render();
+  }else if(mode==='cut'&&cutLine){
+    var q4=toWorld(e.clientX,e.clientY);cutLine.x1=q4.x;cutLine.y1=q4.y;render();
+  }else if(mode==='pan'&&pan){
+    var ddx=e.clientX-pan.x,ddy=e.clientY-pan.y;
+    if(Math.abs(ddx)+Math.abs(ddy)>3)pan.moved=true;
+    view.x=pan.vx+ddx;view.y=pan.vy+ddy;applyView();
+  }
+});
+function segCross(ax,ay,bx,by,cx,cy,dx,dy){
+  var d1=(bx-ax)*(cy-ay)-(by-ay)*(cx-ax),d2=(bx-ax)*(dy-ay)-(by-ay)*(dx-ax);
+  var d3=(dx-cx)*(ay-cy)-(dy-cy)*(ax-cx),d4=(dx-cx)*(by-cy)-(dy-cy)*(bx-cx);
+  return (d1*d2<0)&&(d3*d4<0);
+}
+function endPointer(e){
+  var had=ptrs.delete(e.pointerId);
+  if(!had)return;
+  var cancel=e.type==='pointercancel';
+  if(mode==='pinch'){if(ptrs.size<2){mode=null;pinch=null}return}
+  var sh=cur();
+  if(mode==='sockpend'&&pend){
+    if(!cancel)setSel({kind:'cable',id:pend.cable.id});
+    pend=null;
+  }else if(mode==='drag'&&drag){
+    if(drag.moved){
+      var n=nodeById(sh,drag.id),cd=wcand;wcand=null;
+      if(n){
+        if(cd){var cam=wireMerge(sh,drag.id,cd);if(cam)sel={kind:'node',id:cam.id}}
+      }
+      changed();renderAll();
+    }
+    drag=null;
+  }else if(mode==='gdrag'||mode==='gres'){
+    if(gd&&gd.moved){changed();renderSide()}
+    gd=null;
+  }else if(mode==='conn'&&conn){
+    var c0=conn;conn=null;
+    var p=toWorld(e.clientX,e.clientY);
+    var target=cancel?null:socketAt(sh,p,view.k);
+    var fnode=nodeById(sh,c0.fixed.n),fport=portOf(fnode,c0.fixed.p);
+    var ok=target&&target.node.id!==c0.fixed.n&&fport&&compat(fport,target.port);
+    if(ok){
+      var key=target.node.id+'|'+target.port.id,old=usedMap(sh)[key];
+      if(old)sh.cables=sh.cables.filter(function(q){return q.id!==old.id});
+      var tgt={n:target.node.id,p:target.port.id};
+      var nc=c0.cable?{id:c0.cable.id,len:c0.cable.len,memo:c0.cable.memo}:{id:uid(),len:'',memo:''};
+      if(c0.end==='from'){nc.from=tgt;nc.to=c0.fixed}else{nc.from=c0.fixed;nc.to=tgt}
+      sh.cables.push(nc);
+      if(!c0.cable)pushUndoBefore(nc.id);
+      sel={kind:'cable',id:nc.id};changed();
+    }else if(c0.cable){
+      if(cancel){sh.cables.push(c0.cable);undoStack.pop();$('#undo').disabled=undoStack.length===0}
+      else{sel=null;changed()}
+    }
+    renderAll();
+  }else if(mode==='cut'&&cutLine){
+    var L=cutLine;cutLine=null;
+    if(!cancel){
+      var hits=[];
+      computeCables(sh).forEach(function(cv){
+        var prev=bez(cv,0);
+        for(var i=1;i<=28;i++){
+          var cu=bez(cv,i/28);
+          if(segCross(L.x0,L.y0,L.x1,L.y1,prev.x,prev.y,cu.x,cu.y)){hits.push(cv.c.id);break}
+          prev=cu;
+        }
+      });
+      if(hits.length){pushUndo();sh.cables=sh.cables.filter(function(c){return hits.indexOf(c.id)<0});sel=null;changed()}
+    }
+    renderAll();
+  }else if(mode==='pan'&&pan){
+    svg.classList.remove('panning');
+    if(!pan.moved&&!cancel&&sel)setSel(null);
+    pan=null;
+  }
+  mode=null;
+}
+function pushUndoBefore(newId){
+  var o=JSON.parse(snapshot());
+  var sh=o.sheets.find(function(s){return s.id===state.active});
+  if(sh)sh.cables=sh.cables.filter(function(c){return c.id!==newId});
+  undoStack.push(JSON.stringify(o));if(undoStack.length>40)undoStack.shift();$('#undo').disabled=false;
+}
+svg.addEventListener('pointerup',endPointer);
+svg.addEventListener('pointercancel',endPointer);
+svg.addEventListener('wheel',function(e){e.preventDefault();zoomAt(e.clientX,e.clientY,Math.exp(-e.deltaY*0.0016))},{passive:false});
+function zoomCenter(f){var r=svg.getBoundingClientRect();zoomAt(r.left+r.width/2,r.top+r.height/2,f)}
+$('#zin').addEventListener('click',function(){zoomCenter(1.2)});
+$('#zout').addEventListener('click',function(){zoomCenter(1/1.2)});
+$('#zfit').addEventListener('click',function(){fitView();applyView()});
+$('#undo').addEventListener('click',undo);
+$('#detachAll').addEventListener('click',function(){
+  var sh=cur(),ids=Object.keys(sh.pairs||{}).filter(function(m){return nodeById(sh,m)});
+  if(!ids.length)return;pushUndo();ids.forEach(function(m){wireDetach(m)});renderAll();changed();
+});
+$('#resolve').addEventListener('click',function(){pushUndo();resolveAllWire(cur());renderAll();changed()});
+document.addEventListener('keydown',function(e){
+  var t=e.target,tag=t&&t.tagName;
+  if(e.key==='Escape'&&conn){
+    var c0=conn;conn=null;mode=null;
+    if(c0.cable){cur().cables.push(c0.cable);undoStack.pop();$('#undo').disabled=undoStack.length===0}
+    renderAll();return;
+  }
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+  if(viewMode==='wire'&&(e.key==='Delete'||e.key==='Backspace')&&sel){e.preventDefault();deleteSel()}
+  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo()}
+});
+window.addEventListener('resize',function(){applyView()});
+
+/* ---------- 会場レイアウト ---------- */
+var STD=[1,1.5,2,3,5,7.5,10,15,20,30,50,100];
+var ROOMS=[{n:'教室',w:9,d:7},{n:'小ホール',w:15,d:10},{n:'体育館',w:28,d:15},{n:'正方形(小)',w:10,d:10},{n:'正方形(大)',w:20,d:20},{n:'細長い長方形',w:24,d:8},
+  {n:'小宴会場',w:14,d:9},{n:'中宴会場',w:24,d:16},{n:'大宴会場',w:40,d:25},{n:'特大宴会場',w:60,d:30}];
+var ZKIND={stage:{label:'ステージ',w:8,d:3,h:0.8},seats:{label:'客席',w:12,d:6,h:0},pillar:{label:'柱',w:0.8,d:0.8,h:0},partition:{label:'間仕切り',w:6,d:0.3,h:0},other:{label:'その他',w:3,d:2,h:0}};
+var WALLS=[{id:'top',label:'上'},{id:'right',label:'右'},{id:'bottom',label:'下'},{id:'left',label:'左'}];
+var pv=$('#pv'),pview={x:60,y:60,k:20};
+function stdLen(x){for(var i=0;i<STD.length;i++){if(x<=STD[i]+1e-9)return STD[i]}return Math.ceil(x/10)*10}
+function fm(x){return (Math.round(x*10)/10).toString()}
+function pl(){var sh=cur();ensurePlan(sh);return sh.plan}
+function mx(x){return pview.x+x*pview.k}
+function my(y){return pview.y+y*pview.k}
+function pToM(cx,cy){var r=pv.getBoundingClientRect();return {x:(cx-r.left-pview.x)/pview.k,y:(cy-r.top-pview.y)/pview.k}}
+function clamp(v,a,b){return Math.min(b,Math.max(a,v))}
+function snapM(v){return Math.round(v*4)/4}
+function fitPlan(){
+  var r=pv.getBoundingClientRect();if(!r.width)return false;
+  var p=pl(),padL=58,padT=52,pad=30;
+  pview.k=clamp(Math.min((r.width-padL-pad)/p.w,(r.height-padT-pad)/p.d),4,70);
+  pview.x=padL+((r.width-padL-pad)-p.w*pview.k)/2;
+  pview.y=padT+((r.height-padT-pad)-p.d*pview.k)/2;
+  return true;
+}
+function wallPt(p,wall,pos){
+  if(wall==='top')return {x:pos,y:0,tx:1,ty:0,nx:0,ny:1};
+  if(wall==='bottom')return {x:pos,y:p.d,tx:1,ty:0,nx:0,ny:-1};
+  if(wall==='left')return {x:0,y:pos,tx:0,ty:1,nx:1,ny:0};
+  return {x:p.w,y:pos,tx:0,ty:1,nx:-1,ny:0};
+}
+function wallLen(p,wall){return wall==='top'||wall==='bottom'?p.w:p.d}
+function zoneAt(p,q){
+  var h=0;
+  (p.zones||[]).forEach(function(z){
+    if(z.kind==='stage'&&q.x>=z.x&&q.x<=z.x+z.w&&q.y>=z.y&&q.y<=z.y+z.d)h=Math.max(h,z.h||0);
+  });
+  return h;
+}
+function legPts(P,Q,mode){
+  if(mode==='S')return [P,Q];
+  var mid=(P.x+Q.x)/2;return [P,{x:mid,y:P.y},{x:mid,y:Q.y},Q];
+}
+function polyLen(pts){var t=0;for(var i=1;i<pts.length;i++)t+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);return t}
+function routePts(p,cid,a,b){
+  var via=(p.via&&p.via[cid])||[],anc=[a].concat(via,[b]),out=[a];
+  for(var i=1;i<anc.length;i++){var l=legPts(anc[i-1],anc[i],p.route);for(var j=1;j<l.length;j++)out.push(l[j])}
+  return out;
+}
+function pointAlong(pts,frac){
+  var tot=polyLen(pts),want=tot*frac,acc=0;
+  for(var i=1;i<pts.length;i++){
+    var d=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
+    if(acc+d>=want&&d>0){var t=(want-acc)/d;return {x:pts[i-1].x+(pts[i].x-pts[i-1].x)*t,y:pts[i-1].y+(pts[i].y-pts[i-1].y)*t}}
+    acc+=d;
+  }
+  return pts[Math.floor(pts.length/2)];
+}
+function planCables(sh,p){
+  var out=[];
+  sh.cables.forEach(function(c){
+    var a=posOf(p,c.from.n),b=posOf(p,c.to.n);if(!a||!b)return;
+    var pts=routePts(p,c.id,a,b),flat=polyLen(p.route==='S'?pts:pts.map(function(q){return q})),dz=Math.abs(zoneAt(p,a)-zoneAt(p,b));
+    // 直角引き回しは縦横の合計(折れ線の長さがそのまま縦横の合計になる)
+    var base=flat+dz;
+    var need=stdLen(base+p.slack),set=parseFloat(c.len);
+    out.push({c:c,a:a,b:b,pts:pts,base:base,dz:dz,need:need,set:set,bad:!isNaN(set)&&set<base+p.slack-1e-9,type:ctypeOf(sh,c),nvia:((p.via&&p.via[c.id])||[]).length});
+  });
+  return out;
+}
+function pairs(){var sh=cur();if(!sh.pairs)sh.pairs={};return sh.pairs}
+function isKaeshi(n){return !!n&&n.type==='monitor'&&/返し|カメラマン/.test((n.name||'')+(n.note||''))}
+function posOf(p,id){var cam=pairs()[id];if(cam&&p.placed[cam])return p.placed[cam];return p.placed[id]}
+function monitorOf(p,camId){var pr=pairs(),sh=cur();for(var k in pr){if(pr[k]===camId&&nodeById(sh,k))return k}return null}
+function doAttach(p,monId,camId){pairs()[monId]=camId;if(p.placed[camId])p.placed[monId]={x:p.placed[camId].x,y:p.placed[camId].y}}
+function doDetach(p,monId){
+  var pr=pairs(),cam=pr[monId];delete pr[monId];
+  var c=p.placed[cam];
+  if(c)p.placed[monId]={x:clamp(snapM(c.x+1.25),0,p.w),y:clamp(snapM(c.y+1),0,p.d)};
+}
+function findMerge(sh,p,id){
+  var n=nodeById(sh,id),q=p.placed[id];if(!n||!q)return null;
+  var th=Math.max(1.3,46/pview.k),best=null,bd=1e9,pr=pairs();
+  sh.nodes.forEach(function(o){
+    var oq=p.placed[o.id];if(!oq||o.id===id)return;
+    var ok=false;
+    if(n.type==='camera'&&isKaeshi(o)&&!pr[o.id]&&!monitorOf(p,n.id))ok=true;
+    if(isKaeshi(n)&&!pr[n.id]&&o.type==='camera'&&!monitorOf(p,o.id))ok=true;
+    if(!ok)return;
+    var d=Math.hypot(oq.x-q.x,oq.y-q.y);if(d<=th&&d<bd){bd=d;best=o.id}
+  });
+  return best;
+}
+function mergePair(sh,p,a,b){
+  var na=nodeById(sh,a),nb=nodeById(sh,b);if(!na||!nb)return false;
+  var cam=na.type==='camera'?a:b,mon=cam===a?b:a;
+  doAttach(p,mon,cam);return cam;
+}
+function snapPlan(p){
+  var o={w:p.w,d:p.d,placed:{},doors:p.doors.map(function(d){return {pos:d.pos}}),
+    zones:(p.zones||[]).map(function(z){return {x:z.x,y:z.y,w:z.w,d:z.d}}),via:{}};
+  Object.keys(p.via||{}).forEach(function(k){o.via[k]=p.via[k].map(function(q){return {x:q.x,y:q.y}})});
+  Object.keys(p.placed).forEach(function(id){o.placed[id]={x:p.placed[id].x,y:p.placed[id].y}});
+  return o;
+}
+function scalePlan(p,base){
+  var fx=p.w/base.w,fy=p.d/base.d;
+  Object.keys(base.placed).forEach(function(id){
+    var q=base.placed[id];p.placed[id]={x:clamp(snapM(q.x*fx),0,p.w),y:clamp(snapM(q.y*fy),0,p.d)};
+  });
+  p.doors.forEach(function(d,i){
+    var b=base.doors[i];if(!b)return;
+    var horiz=d.wall==='top'||d.wall==='bottom',f=horiz?fx:fy;
+    var L=wallLen(p,d.wall);d.width=Math.min(d.width,L);d.pos=clamp(Math.round(b.pos*f*4)/4,d.width/2,L-d.width/2);
+  });
+  (p.zones||[]).forEach(function(z,i){
+    var b=base.zones&&base.zones[i];if(!b)return;
+    z.x=clamp(snapM(b.x*fx),0,p.w-0.25);z.y=clamp(snapM(b.y*fy),0,p.d-0.25);
+    z.w=Math.max(0.25,Math.min(snapM(b.w*fx),p.w-z.x));z.d=Math.max(0.25,Math.min(snapM(b.d*fy),p.d-z.y));
+  });
+  Object.keys(base.via||{}).forEach(function(k){
+    if(p.via&&p.via[k])p.via[k]=base.via[k].map(function(q){return {x:clamp(snapM(q.x*fx),0,p.w),y:clamp(snapM(q.y*fy),0,p.d)}});
+  });
+  var pr=pairs();
+  Object.keys(pr).forEach(function(m){var c=p.placed[pr[m]];if(c)p.placed[m]={x:c.x,y:c.y}});
+}
+function mkBox(p,id){var comp=!!monitorOf(p,id);return {w:comp?122:104,h:comp?72:58}}
+function resolvePlan(sh,p,ids){
+  var k=pview.k||20,pr=pairs();
+  var vis=Object.keys(p.placed).filter(function(id){return nodeById(sh,id)&&!(pr[id]&&p.placed[pr[id]])});
+  var movers={};ids.forEach(function(i){movers[i]=1});
+  var fixed=vis.filter(function(id){return !movers[id]});
+  function hit(id,x,y){
+    var a=mkBox(p,id);
+    return fixed.some(function(o){var q=p.placed[o],b=mkBox(p,o);return Math.abs(q.x-x)*k<(a.w+b.w)/2&&Math.abs(q.y-y)*k<(a.h+b.h)/2});
+  }
+  ids.forEach(function(id){
+    if(vis.indexOf(id)<0)return;
+    var q=p.placed[id];
+    if(hit(id,q.x,q.y)){
+      var step=Math.max(0.25,10/k),best=null;
+      for(var r=1;r<=80&&!best;r++){
+        var c=[];for(var dx=-r;dx<=r;dx++)for(var dy=-r;dy<=r;dy++){if(Math.max(Math.abs(dx),Math.abs(dy))===r)c.push([dx,dy])}
+        c.sort(function(a,b){return a[0]*a[0]+a[1]*a[1]-b[0]*b[0]-b[1]*b[1]});
+        for(var i=0;i<c.length;i++){
+          var x=clamp(q.x+c[i][0]*step,0,p.w),y=clamp(q.y+c[i][1]*step,0,p.d);
+          if(!hit(id,x,y)){best={x:snapM(x),y:snapM(y)};break}
+        }
+      }
+      if(best){q.x=best.x;q.y=best.y;var mm=monitorOf(p,id);if(mm)p.placed[mm]={x:q.x,y:q.y}}
+    }
+    fixed.push(id);
+  });
+}
+function nodeName(sh,id){var n=nodeById(sh,id);return n?n.name:'?'}
+function cableTitle(sh,c){return nodeName(sh,c.from.n)+' → '+nodeName(sh,c.to.n)+(c.memo?'('+c.memo+')':'')}
+
+function renderPlan(){
+  var sh=cur(),p=pl(),k=pview.k;
+  pv.replaceChildren();
+  var defs=el('defs',{},pv);
+  var cp0=el('clipPath',{id:'roomclip'},defs);el('rect',{x:mx(0),y:my(0),width:p.w*k,height:p.d*k},cp0);
+  var x0=mx(0),y0=my(0),w=p.w*k,h=p.d*k;
+  el('rect',{x:x0,y:y0,width:w,height:h,fill:'var(--floor)'},pv);
+  // grid
+  var step=k>=16?1:(k>=7?5:10),major=step===1?5:(step===5?10:50);
+  var g=el('g',{},pv);
+  for(var xv=0;xv<=p.w+1e-9;xv+=step){var isM=Math.round(xv/step)%(major/step)===0;
+    el('line',{x1:mx(xv),y1:y0,x2:mx(xv),y2:y0+h,stroke:'var(--floorline)','stroke-width':isM?1.4:0.7},g);
+    if(isM&&xv>0&&xv<p.w){var t=el('text',{'class':'dim',x:mx(xv),y:y0-8,'text-anchor':'middle'},g);t.textContent=fm(xv)}}
+  for(var yv=0;yv<=p.d+1e-9;yv+=step){var isM2=Math.round(yv/step)%(major/step)===0;
+    el('line',{x1:x0,y1:my(yv),x2:x0+w,y2:my(yv),stroke:'var(--floorline)','stroke-width':isM2?1.4:0.7},g);
+    if(isM2&&yv>0&&yv<p.d){var t2=el('text',{'class':'dim',x:x0-8,y:my(yv)+4,'text-anchor':'end'},g);t2.textContent=fm(yv)}}
+  // overall dimensions
+  var dt=el('text',{'class':'dim',x:x0+w/2,y:y0-26,'text-anchor':'middle','font-weight':700},pv);dt.textContent='幅 '+fm(p.w)+' m';
+  dt.style.fontSize='12px';
+  var dl=el('text',{'class':'dim',x:x0-38,y:y0+h/2,'text-anchor':'middle',transform:'rotate(-90 '+(x0-38)+' '+(y0+h/2)+')'},pv);dl.textContent='奥行 '+fm(p.d)+' m';dl.style.fontSize='12px';
+  var rn=el('text',{'class':'dim',x:x0+8,y:y0+h-8},pv);rn.textContent=(p.room||'')+' '+fm(p.w)+'×'+fm(p.d)+'m';
+  el('rect',{x:x0,y:y0,width:w,height:h,fill:'none',stroke:'var(--fg)','stroke-width':4},pv);
+  // zones
+  (p.zones||[]).forEach(function(z){
+    var isSel=planSel&&planSel.kind==='zone'&&planSel.id===z.id,big=z.kind==='stage'||z.kind==='seats'||z.kind==='other';
+    var zg=el('g',{'class':'zone z-'+z.kind+(isSel?' sel':''),'data-zid':z.id},pv);
+    var zb=el('rect',{'class':'zb',x:mx(z.x),y:my(z.y),width:z.w*k,height:z.d*k,rx:z.kind==='pillar'?2:4},zg);
+    if(!big){zb.setAttribute('data-zone',z.id);zb.style.cursor='move';zb.style.pointerEvents='all'}
+    var zt=(z.name||ZKIND[z.kind].label)+(z.kind==='stage'&&z.h?' 高さ'+fm(z.h)+'m':'');
+    if(big){
+      var tw0=Math.min(tw(zt,11)+14,Math.max(40,z.w*k-4));
+      var tab=el('rect',{'class':'ztab','data-zone':z.id,x:mx(z.x)+2,y:my(z.y)+2,width:tw0,height:18,rx:9,style:'cursor:move'},zg);
+      var tx=el('text',{'class':'ztxt','data-zone':z.id,x:mx(z.x)+2+tw0/2,y:my(z.y)+15,'text-anchor':'middle',style:'cursor:move'},zg);tx.textContent=trunc(zt,tw0-8,11);
+    }else if(z.w*k>50||z.d*k>50){
+      var tx2=el('text',{'class':'ztxt2',x:mx(z.x)+z.w*k/2,y:my(z.y)+z.d*k/2+4,'text-anchor':'middle'},zg);tx2.textContent=trunc(zt,Math.max(30,z.w*k),10);
+    }
+    if(isSel)el('rect',{'class':'zres','data-zres':z.id,x:mx(z.x+z.w)-9,y:my(z.y+z.d)-9,width:14,height:14,rx:3},zg);
+  });
+  // camera aim
+  Object.keys(p.aim||{}).forEach(function(id){
+    var a=p.aim[id],q=p.placed[id],n=nodeById(sh,id);if(!a||!q||!n||n.type!=='camera')return;
+    var cx=mx(q.x),cy=my(q.y),r=a.range*k,t1=(a.ang-a.fov/2)*Math.PI/180,t2=(a.ang+a.fov/2)*Math.PI/180;
+    var isSel=planSel&&planSel.kind==='eq'&&planSel.id===id;
+    el('path',{'class':'aim'+(isSel?' sel':''),'clip-path':'url(#roomclip)',d:'M'+cx+' '+cy+' L'+(cx+r*Math.sin(t1))+' '+(cy-r*Math.cos(t1))+' A'+r+' '+r+' 0 '+(a.fov>180?1:0)+' 1 '+(cx+r*Math.sin(t2))+' '+(cy-r*Math.cos(t2))+' Z'},pv);
+  });
+  // doors
+  p.doors.forEach(function(d){
+    var o=wallPt(p,d.wall,d.pos),hw=d.width/2;
+    var H={x:o.x-o.tx*hw,y:o.y-o.ty*hw},E={x:o.x+o.tx*hw,y:o.y+o.ty*hw},T={x:H.x+o.nx*d.width,y:H.y+o.ny*d.width};
+    var isSel=planSel&&planSel.kind==='door'&&planSel.id===d.id;
+    var dg=el('g',{'class':'door'+(isSel?' sel':''),'data-door':d.id,style:'cursor:grab'},pv);
+    el('line',{x1:mx(H.x),y1:my(H.y),x2:mx(E.x),y2:my(E.y),stroke:'var(--floor)','stroke-width':7},dg);
+    el('line',{'class':'leaf',x1:mx(H.x),y1:my(H.y),x2:mx(T.x),y2:my(T.y),stroke:'var(--fg)','stroke-width':2},dg);
+    var sweep=((T.x-H.x)*(E.y-H.y)-(T.y-H.y)*(E.x-H.x))>0?1:0,r=d.width*k;
+    el('path',{'class':'arc',d:'M'+mx(T.x)+' '+my(T.y)+' A'+r+' '+r+' 0 0 '+sweep+' '+mx(E.x)+' '+my(E.y),fill:'none',stroke:'var(--muted)','stroke-width':1.3,'stroke-dasharray':'4 3'},dg);
+    el('line',{x1:mx(H.x),y1:my(H.y),x2:mx(E.x),y2:my(E.y),stroke:'transparent','stroke-width':22},dg);
+    var lb=el('text',{'class':'dim',x:mx(o.x+o.nx*(d.width*0.5)),y:my(o.y+o.ny*(d.width*0.5))+4,'text-anchor':'middle'},dg);lb.textContent='扉 '+fm(d.width)+'m';
+  });
+  // cables
+  var cabs=planCables(sh,p),pairIdx={};
+  cabs.forEach(function(it){
+    var isSel=planSel&&((planSel.kind==='cable'&&planSel.id===it.c.id)||(planSel.kind==='eq'&&(planSel.id===it.c.from.n||planSel.id===it.c.to.n)));
+    var pts=it.pts.map(function(q){return {x:mx(q.x),y:my(q.y)}});
+    var mp=pointAlong(pts,0.5),lx=mp.x,ly=mp.y;
+    var dstr='M'+pts.map(function(q){return q.x+' '+q.y}).join(' L');
+    var gc=el('g',{'class':'pc '+tcls(it.type)+(it.bad?' bad':'')+((planSel&&planSel.kind==='cable'&&planSel.id===it.c.id)?' sel':''),'data-pc':it.c.id},pv);
+    el('path',{'class':'halo',d:dstr},gc);
+    var ln=el('path',{'class':'l',d:dstr},gc);var dash=CT[it.type].dash;if(dash)ln.setAttribute('stroke-dasharray',dash);
+    el('path',{'class':'hit',d:dstr},gc);
+    if(p.labels||isSel){
+      var key=Math.round(lx/6)+'|'+Math.round(ly/6);var ix=pairIdx[key]=(pairIdx[key]||0)+1;
+      var text='要'+fm(it.need)+'m'+(it.bad?' ⚠設定'+fm(it.set)+'m':'');
+      var tw2=tw(text,11)+12,yy=ly+(ix-1)*15;
+      el('rect',{'class':'pill',x:lx-tw2/2,y:yy-9,width:tw2,height:18,rx:9},gc);
+      var tt=el('text',{x:lx,y:yy+4,'text-anchor':'middle'},gc);tt.textContent=text;
+    }
+  });
+  // 経由点(選択中のケーブルのみ)
+  if(planSel&&planSel.kind==='cable'&&p.via&&p.via[planSel.id]){
+    p.via[planSel.id].forEach(function(q,i){
+      var vg=el('g',{'class':'via','data-via':planSel.id+'|'+i,style:'cursor:move'},pv);
+      el('circle',{cx:mx(q.x),cy:my(q.y),r:8},vg);
+      var vt=el('text',{x:mx(q.x),y:my(q.y)+4,'text-anchor':'middle'},vg);vt.textContent=String(i+1);
+    });
+  }
+  // equipment
+  var cand=pdrag&&pdrag.cand?pdrag.cand:null;
+  var order=sh.nodes.slice().sort(function(a,b){var sa=planSel&&planSel.kind==='eq'&&planSel.id===a.id?1:0,sb=planSel&&planSel.kind==='eq'&&planSel.id===b.id?1:0;return sa-sb});
+  order.forEach(function(n){
+    var q=p.placed[n.id];if(!q)return;
+    if(pairs()[n.id]&&p.placed[pairs()[n.id]])return; // 返しモニターは親のカメラと合体表示
+    var mid=n.type==='camera'?monitorOf(p,n.id):null,mn=mid?nodeById(sh,mid):null;
+    var isSel=planSel&&planSel.kind==='eq'&&(planSel.id===n.id||(mid&&planSel.id===mid));
+    var ge=el('g',{'class':'eq'+(isSel?' sel':''),'data-eq':n.id,transform:'translate('+mx(q.x)+' '+my(q.y)+')',style:'cursor:move'},pv);
+    var tl=el('title',{},ge);tl.textContent=n.name+(mn?' + '+mn.name:'')+'  ('+fm(q.x)+', '+fm(q.y)+' m)';
+    if(cand&&(cand===n.id||pdrag.id===n.id)){el('rect',{x:mn?-37:-24,y:-24,width:mn?74:48,height:48,rx:24,fill:'none',stroke:'var(--sel)','stroke-width':2,'stroke-dasharray':'5 4'},ge)}
+    if(mn){
+      el('rect',{'class':'bg',x:-31,y:-17,width:62,height:34,rx:17},ge);
+      el('use',{'class':'ic',href:'#ic-camera',x:-27,y:-11,width:22,height:22},ge);
+      el('use',{'class':'ic',href:'#ic-monitor',x:5,y:-11,width:22,height:22},ge);
+      var cp2=el('text',{'class':'cap',x:0,y:32,'text-anchor':'middle'},ge);cp2.textContent=trunc(n.name||'',110,11);
+      var cs=el('text',{'class':'cap',x:0,y:45,'text-anchor':'middle','font-size':10,'font-weight':400},ge);cs.textContent='+'+trunc(mn.name||'',100,10);
+    }else{
+      el('circle',{'class':'bg',r:17},ge);
+      el('use',{'class':'ic',href:'#ic-'+(NT[n.type]?n.type:'other'),x:-11,y:-11,width:22,height:22},ge);
+      var cp=el('text',{'class':'cap',x:0,y:32,'text-anchor':'middle'},ge);cp.textContent=trunc(n.name||'',96,11);
+    }
+  });
+  if(planSel&&planSel.kind==='eq'&&p.aim&&p.aim[planSel.id]&&p.placed[planSel.id]){
+    var ah=p.aim[planSel.id],aq=p.placed[planSel.id],ar=Math.max(ah.range*k,30);
+    var hx=mx(aq.x)+ar*Math.sin(ah.ang*Math.PI/180),hy=my(aq.y)-ar*Math.cos(ah.ang*Math.PI/180);
+    if(ah.range*k<30){hx=mx(aq.x)+ah.range*k*Math.sin(ah.ang*Math.PI/180);hy=my(aq.y)-ah.range*k*Math.cos(ah.ang*Math.PI/180)}
+    var hg=el('g',{'class':'aimh','data-aim':planSel.id,style:'cursor:crosshair'},pv);
+    el('line',{x1:mx(aq.x),y1:my(aq.y),x2:hx,y2:hy,stroke:'var(--sel)','stroke-width':1.2,'stroke-dasharray':'3 3'},hg);
+    el('circle',{cx:hx,cy:hy,r:8},hg);
+    var ht2=el('text',{x:hx,y:hy+3.5,'text-anchor':'middle'},hg);ht2.textContent='◎';
+  }
+  if(cand&&pdrag){
+    var dq=p.placed[pdrag.id];
+    if(dq){var ht=el('text',{x:mx(dq.x),y:my(dq.y)-30,'text-anchor':'middle','font-size':11,'font-weight':700,fill:'var(--sel)'},pv);ht.textContent='離すと合体';ht.style.fill='var(--sel)'}
+  }
+}
+function renderPlanLeft(){
+  var sh=cur(),p=pl(),box=$('#pLeft');
+  box.innerHTML='<h2>会場の形(サンプル)</h2><div class="tmpl">'+ROOMS.map(function(r,i){
+    return '<button type="button" data-room="'+i+'" aria-pressed="'+(p.room===r.n&&p.w===r.w&&p.d===r.d)+'">'+esc(r.n)+'<small>'+r.w+'×'+r.d+' m</small></button>';
+  }).join('')+'</div>'+
+  '<div class="dims"><input id="pw" type="number" min="2" max="200" step="0.5" value="'+p.w+'" aria-label="幅(m)"><span>×</span><input id="pd" type="number" min="2" max="200" step="0.5" value="'+p.d+'" aria-label="奥行(m)"><span>m</span></div>'+
+  '<h2 style="margin-top:6px">扉を追加</h2><div class="tmpl">'+WALLS.map(function(w){return '<button type="button" class="dbtn" data-door="'+w.id+'">'+w.label+'の壁</button>'}).join('')+'</div>'+
+  '<h2 style="margin-top:6px">ゾーン・障害物</h2><div class="tmpl">'+Object.keys(ZKIND).map(function(k){return '<button type="button" class="dbtn" data-zk="'+k+'">'+ZKIND[k].label+'</button>'}).join('')+'</div>'+
+  '<h2 style="margin-top:6px">機材を置く</h2><button type="button" class="dbtn" id="resolveP">重なりを解消</button><button type="button" class="dbtn" id="detachP">合体をすべて分離</button><div class="plist" id="eqlist">'+(sh.nodes.length?sh.nodes.map(function(n){
+    var on=!!p.placed[n.id],att=pairs()[n.id]&&p.placed[pairs()[n.id]];
+    return '<button type="button" class="eqrow'+(on?'':' off')+((planSel&&planSel.kind==='eq'&&planSel.id===n.id)?' sel':'')+'" draggable="true" data-eq="'+n.id+'"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#ic-'+(NT[n.type]?n.type:'other')+'"/></svg><span class="nm">'+esc(n.name||'(名称なし)')+'</span><span class="st">'+(att?'セット中':(on?'配置済':'未配置'))+'</span></button>';
+  }).join(''):'<div class="empty">配線図で機材を追加してください。</div>')+'</div>';
+  box.querySelectorAll('[data-room]').forEach(function(b){b.addEventListener('click',function(){
+    var r=ROOMS[+b.getAttribute('data-room')];pushUndo();var base=snapPlan(p);p.room=r.n;p.w=r.w;p.d=r.d;scalePlan(p,base);reclampPlan(p);planFit=true;renderPlanAll();changed();
+  })});
+  var onDim=function(){
+    var w=parseFloat($('#pw').value),d=parseFloat($('#pd').value);
+    if(!(w>=2&&d>=2))return;
+    var base=$('#pw')._base||snapPlan(p);
+    p.w=Math.min(w,200);p.d=Math.min(d,200);p.room='';scalePlan(p,base);reclampPlan(p);renderPlan();changed();
+  };
+  ['#pw','#pd'].forEach(function(id){
+    var i=$(id);i.addEventListener('focus',function(){i._first=true;$('#pw')._base=snapPlan(p)});
+    i.addEventListener('input',function(){if(i._first){pushUndo();i._first=false}onDim()});
+    i.addEventListener('change',function(){fitPlan();renderPlanAll()});
+  });
+  $('#detachP').addEventListener('click',function(){
+    var ids=Object.keys(pairs()).filter(function(m){return nodeById(sh,m)});if(!ids.length)return;
+    pushUndo();ids.forEach(function(m){doDetach(p,m)});renderPlanAll();changed();
+  });
+  $('#resolveP').addEventListener('click',function(){
+    pushUndo();var ids=Object.keys(p.placed).filter(function(id){return nodeById(sh,id)}).sort(function(a,b){return p.placed[a].y-p.placed[b].y||p.placed[a].x-p.placed[b].x});
+    resolvePlan(sh,p,ids);renderPlanAll();changed();
+  });
+  box.querySelectorAll('button[data-zk]').forEach(function(b){b.addEventListener('click',function(){
+    var kd=b.getAttribute('data-zk'),t=ZKIND[kd];pushUndo();
+    var zw=Math.min(t.w,p.w*0.6),zd=Math.min(t.d,p.d*0.6);
+    var z={id:uid(),kind:kd,name:t.label,x:snapM((p.w-zw)/2),y:kd==='stage'?0:snapM((p.d-zd)/2),w:zw,d:zd,h:t.h};
+    p.zones.push(z);planSel={kind:'zone',id:z.id};renderPlanAll();changed();
+  })});
+  box.querySelectorAll('button[data-door]').forEach(function(b){b.addEventListener('click',function(){
+    var wall=b.getAttribute('data-door');pushUndo();
+    var d={id:uid(),wall:wall,pos:Math.round(wallLen(p,wall)/2*4)/4,width:1};p.doors.push(d);planSel={kind:'door',id:d.id};renderPlanAll();changed();
+  })});
+  box.querySelectorAll('.eqrow').forEach(function(b){
+    var id=b.getAttribute('data-eq');
+    b.addEventListener('click',function(){
+      if(!p.placed[id]){pushUndo();var c=cwCenter();p.placed[id]={x:snapM(c.x+(Math.random()-.5)*2),y:snapM(c.y+(Math.random()-.5)*2)};changed()}
+      planSel={kind:'eq',id:(pairs()[id]&&p.placed[pairs()[id]])?pairs()[id]:id};renderPlanAll();
+    });
+    b.addEventListener('dragstart',function(e){e.dataTransfer.setData('text/plain','eq:'+id);e.dataTransfer.effectAllowed='copy'});
+  });
+}
+function cwCenter(){var p=pl();return {x:p.w/2,y:p.d/2}}
+function reclampPlan(p){
+  Object.keys(p.placed).forEach(function(id){var q=p.placed[id];q.x=clamp(q.x,0,p.w);q.y=clamp(q.y,0,p.d)});
+  (p.zones||[]).forEach(function(z){z.x=clamp(z.x,0,Math.max(0,p.w-0.25));z.y=clamp(z.y,0,Math.max(0,p.d-0.25));z.w=Math.max(0.25,Math.min(z.w,p.w-z.x));z.d=Math.max(0.25,Math.min(z.d,p.d-z.y))});
+  Object.keys(p.via||{}).forEach(function(k){p.via[k].forEach(function(q){q.x=clamp(q.x,0,p.w);q.y=clamp(q.y,0,p.d)})});
+  p.doors.forEach(function(d){var L=wallLen(p,d.wall);d.width=Math.min(d.width,L);d.pos=clamp(d.pos,d.width/2,L-d.width/2)});
+}
+function renderPlanSide(){
+  var sh=cur(),p=pl(),box=$('#pSide');
+  var cabs=planCables(sh,p);
+  var allSel=planSel;
+  if(allSel&&allSel.kind==='eq'){
+    var n=nodeById(sh,allSel.id),q=n&&p.placed[allSel.id];
+    if(!n||!q){planSel=null;return renderPlanSide()}
+    var mid=n.type==='camera'?monitorOf(p,n.id):null,mn=mid?nodeById(sh,mid):null;
+    var mine=cabs.filter(function(it){return it.c.from.n===n.id||it.c.to.n===n.id||(mid&&(it.c.from.n===mid||it.c.to.n===mid))});
+    box.innerHTML='<div><h2>配置した機材</h2><div style="font-weight:700">'+esc(n.name)+'</div><div class="note">'+esc(n.note||'')+'</div></div>'+
+      (mn?'<div class="field"><label>セットの返しモニター</label><div class="row" style="align-items:center"><span style="flex:1;min-width:0;font-weight:700">'+esc(mn.name)+'</span><button class="btn" id="detach" type="button">分離</button></div></div>':
+        ((n.type==='camera'||isKaeshi(n))?'<div class="note">'+(n.type==='camera'?'返しモニターを近づけると合体して1つのアイコンになります。':'カメラの近くへ動かすと合体して1つのアイコンになります。')+'</div>':''))+
+      (n.ip||n.res||n.memo?'<div class="note" style="white-space:pre-wrap">'+esc([n.ip?'IP: '+n.ip:'',n.res?'設定: '+n.res:'',n.memo||''].filter(Boolean).join('\n'))+'</div>':'')+
+      (n.type==='camera'?aimHtml(p,n.id):'')+
+      '<div class="dims"><span>X</span><input id="ex" type="number" step="0.25" min="0" max="'+p.w+'" value="'+fm(q.x)+'"><span>Y</span><input id="ey" type="number" step="0.25" min="0" max="'+p.d+'" value="'+fm(q.y)+'"><span>m</span></div>'+
+      '<div class="note">左上の角を(0,0)とした位置です。壁までの距離: 左 '+fm(q.x)+'m / 右 '+fm(p.w-q.x)+'m / 上 '+fm(q.y)+'m / 下 '+fm(p.d-q.y)+'m</div>'+
+      '<div><h2>この機材のケーブル('+mine.length+')</h2>'+cableRows(sh,mine)+'</div>'+
+      '<div class="row"><button class="btn danger" id="unplace" type="button">配置を外す</button></div>';
+    var bindXY=function(id,key){var i=$(id);i.addEventListener('focus',function(){i._first=true});
+      i.addEventListener('input',function(){var v=parseFloat(i.value);if(isNaN(v))return;if(i._first){pushUndo();i._first=false}q[key]=clamp(v,0,key==='x'?p.w:p.d);if(mid)p.placed[mid]={x:q.x,y:q.y};renderPlan();changed()})};
+    bindXY('#ex','x');bindXY('#ey','y');
+    if(n.type==='camera')bindAim(p,n.id);
+    $('#unplace').addEventListener('click',function(){pushUndo();var mm=monitorOf(p,n.id);if(mm)doDetach(p,mm);delete pairs()[n.id];delete p.placed[n.id];planSel=null;renderPlanAll();changed()});
+    if(mn)$('#detach').addEventListener('click',function(){pushUndo();doDetach(p,mid);renderPlanAll();changed()});
+    bindCableRows(box);return;
+  }
+  if(allSel&&allSel.kind==='zone'){
+    var z=(p.zones||[]).find(function(x){return x.id===allSel.id});if(!z){planSel=null;return renderPlanSide()}
+    box.innerHTML='<div><h2>ゾーンの設定</h2></div>'+
+      '<div class="field"><label for="zn">名前</label><input id="zn" value="'+esc(z.name||'')+'"></div>'+
+      '<div class="field"><label for="zk">種類</label><select id="zk">'+Object.keys(ZKIND).map(function(k){return '<option value="'+k+'"'+(k===z.kind?' selected':'')+'>'+ZKIND[k].label+'</option>'}).join('')+'</select></div>'+
+      '<div class="dims"><span>X</span><input id="zx" type="number" step="0.25" value="'+fm(z.x)+'"><span>Y</span><input id="zy" type="number" step="0.25" value="'+fm(z.y)+'"></div>'+
+      '<div class="dims"><span>幅</span><input id="zw" type="number" step="0.25" min="0.25" value="'+fm(z.w)+'"><span>奥行</span><input id="zd" type="number" step="0.25" min="0.25" value="'+fm(z.d)+'"><span>m</span></div>'+
+      (z.kind==='stage'?'<div class="field"><label for="zh">ステージの高さ(m)</label><input id="zh" type="number" step="0.1" min="0" max="3" value="'+fm(z.h||0)+'"></div><div class="note">ステージの上に置いた機材と床の機材をつなぐケーブルには、この高さの差が長さに加算されます(三脚の高さは含みません)。</div>':'')+
+      '<div class="note">図の上では名前のタブをドラッグで移動、選択中の右下の●で大きさを変えられます。</div>'+
+      '<div class="row"><button class="btn danger" id="zdel" type="button">ゾーンを削除</button></div>';
+    var zbind=function(id,fn){var i=$(id);if(!i)return;i.addEventListener('focus',function(){i._first=true});
+      i.addEventListener('input',function(){var v=i.type==='number'?parseFloat(i.value):i.value;if(i.type==='number'&&isNaN(v))return;if(i._first){pushUndo();i._first=false}fn(v);reclampPlan(p);renderPlan();changed()})};
+    zbind('#zn',function(v){z.name=v});zbind('#zx',function(v){z.x=v});zbind('#zy',function(v){z.y=v});
+    zbind('#zw',function(v){z.w=Math.max(0.25,v)});zbind('#zd',function(v){z.d=Math.max(0.25,v)});zbind('#zh',function(v){z.h=Math.max(0,v)});
+    $('#zk').addEventListener('change',function(e){pushUndo();z.kind=e.target.value;if(z.kind!=='stage')z.h=0;else if(!z.h)z.h=0.8;renderPlanAll();changed()});
+    $('#zdel').addEventListener('click',function(){pushUndo();p.zones=p.zones.filter(function(x){return x.id!==z.id});planSel=null;renderPlanAll();changed()});
+    return;
+  }
+  if(allSel&&allSel.kind==='door'){
+    var d=p.doors.find(function(x){return x.id===allSel.id});if(!d){planSel=null;return renderPlanSide()}
+    box.innerHTML='<div><h2>扉の設定</h2></div>'+
+      '<div class="field"><label for="dw">壁</label><select id="dw">'+WALLS.map(function(w){return '<option value="'+w.id+'"'+(w.id===d.wall?' selected':'')+'>'+w.label+'の壁</option>'}).join('')+'</select></div>'+
+      '<div class="field"><label for="dp">位置(壁の左端/上端から扉の中心まで m)</label><input id="dp" type="number" step="0.25" min="0" value="'+fm(d.pos)+'"></div>'+
+      '<div class="field"><label for="dwd">扉の幅(m)</label><input id="dwd" type="number" step="0.1" min="0.5" max="10" value="'+fm(d.width)+'"></div>'+
+      '<div class="note">扉は図の上でドラッグして壁に沿って動かせます。開く向きは部屋の内側です。</div>'+
+      '<div class="row"><button class="btn danger" id="ddel" type="button">扉を削除</button></div>';
+    $('#dw').addEventListener('change',function(e){pushUndo();d.wall=e.target.value;reclampPlan(p);renderPlanAll();changed()});
+    var bd=function(id,key,lo){var i=$(id);i.addEventListener('focus',function(){i._first=true});
+      i.addEventListener('input',function(){var v=parseFloat(i.value);if(isNaN(v)||v<lo)return;if(i._first){pushUndo();i._first=false}d[key]=v;reclampPlan(p);renderPlan();changed()})};
+    bd('#dp','pos',0);bd('#dwd','width',0.5);
+    $('#ddel').addEventListener('click',function(){pushUndo();p.doors=p.doors.filter(function(x){return x.id!==d.id});planSel=null;renderPlanAll();changed()});
+    return;
+  }
+  if(allSel&&allSel.kind==='cable'){
+    var it=cabs.find(function(x){return x.c.id===allSel.id});
+    if(!it){planSel=null;return renderPlanSide()}
+    var vias=(p.via&&p.via[it.c.id])||[];
+    box.innerHTML='<div><h2>ケーブル</h2><div style="font-weight:700">'+esc(cableTitle(sh,it.c))+'</div></div>'+cableRows(sh,[it])+
+      '<div class="note">配線図側の長さ: '+esc(it.c.len||'未設定')+'</div>'+
+      '<div><h2>経路(経由点 '+vias.length+')</h2><div class="note">通したい場所に経由点を置くと、その点を通る距離で必要長を計算します。図の上の番号付きの丸をドラッグで動かせます。</div></div>'+
+      '<div class="row"><button class="btn" id="vadd" type="button">＋ 経由点</button><button class="btn" id="vclr" type="button"'+(vias.length?'':' disabled')+'>経由点を消す</button></div>'+
+      '<div class="field"><label for="vwall">壁沿いに回す</label><select id="vwall"><option value="">壁を選ぶ…</option>'+WALLS.map(function(w){return '<option value="'+w.id+'">'+w.label+'の壁沿い</option>'}).join('')+'</select></div>'+
+      (p.doors.length?'<div class="field"><label for="vdoor">扉を経由する(扉越し)</label><select id="vdoor"><option value="">扉を選ぶ…</option>'+p.doors.map(function(d,i){return '<option value="'+d.id+'">'+WALLS.find(function(w){return w.id===d.wall}).label+'の壁の扉 '+(i+1)+'(幅'+fm(d.width)+'m)</option>'}).join('')+'</select></div>':'<div class="note">扉を追加すると「扉を経由」を選べます。</div>')+
+      (vias.length?'<div class="plist">'+vias.map(function(q,i){return '<div class="crow"><div class="t"><span>経由点 '+(i+1)+'  ('+fm(q.x)+', '+fm(q.y)+' m)</span></div><div class="r"><button class="btn" data-vdel="'+i+'" type="button">削除</button></div></div>'}).join('')+'</div>':'');
+    var cid=it.c.id;
+    var addVia=function(pt){pushUndo();if(!p.via[cid])p.via[cid]=[];
+      var arr=p.via[cid],best=0,bl=1e9,a=it.a,b=it.b;
+      for(var ii=0;ii<=arr.length;ii++){var t=arr.slice();t.splice(ii,0,pt);var L=polyLen(routePts((function(){var o={via:{},route:p.route};o.via[cid]=t;return o})(),cid,a,b));if(L<bl){bl=L;best=ii}}
+      arr.splice(best,0,pt);renderPlanAll();changed()};
+    $('#vadd').addEventListener('click',function(){
+      var mp=pointAlong(it.pts,0.5);addVia({x:clamp(snapM(mp.x),0,p.w),y:clamp(snapM(mp.y+1),0,p.d)});
+    });
+    $('#vclr').addEventListener('click',function(){pushUndo();delete p.via[cid];renderPlanAll();changed()});
+    $('#vwall').addEventListener('change',function(e){
+      var w=e.target.value;if(!w)return;pushUndo();var ins=0.3,A=it.a,B=it.b,pa,pb;
+      if(w==='top'){pa={x:A.x,y:ins};pb={x:B.x,y:ins}}else if(w==='bottom'){pa={x:A.x,y:p.d-ins};pb={x:B.x,y:p.d-ins}}
+      else if(w==='left'){pa={x:ins,y:A.y};pb={x:ins,y:B.y}}else{pa={x:p.w-ins,y:A.y};pb={x:p.w-ins,y:B.y}}
+      p.via[cid]=[pa,pb].map(function(q){return {x:clamp(Math.round(q.x*4)/4,0,p.w),y:clamp(Math.round(q.y*4)/4,0,p.d)}});
+      renderPlanAll();changed();
+    });
+    if($('#vdoor'))$('#vdoor').addEventListener('change',function(e){
+      var d=p.doors.find(function(x){return x.id===e.target.value});if(!d)return;
+      var o=wallPt(p,d.wall,d.pos);addVia({x:o.x,y:o.y});
+    });
+    box.querySelectorAll('[data-vdel]').forEach(function(b){b.addEventListener('click',function(ev){
+      ev.stopPropagation();pushUndo();p.via[cid].splice(+b.getAttribute('data-vdel'),1);if(!p.via[cid].length)delete p.via[cid];renderPlanAll();changed();
+    })});
+    bindCableRows(box);return;
+  }
+  var placed=Object.keys(p.placed).filter(function(id){return nodeById(sh,id)}).length;
+  var unplaced=sh.cables.length-cabs.length;
+  var bad=cabs.filter(function(x){return x.bad}).length;
+  var sorted=cabs.slice().sort(function(a,b){return (b.bad-a.bad)||(b.need-a.need)||(b.base-a.base)});
+  box.innerHTML='<div><h2>ケーブルの必要長</h2><div class="note">配置済み '+placed+'/'+sh.nodes.length+' 台 ・ 長さ不足 '+bad+' 本'+(unplaced?' ・ 未配置の機材につながる '+unplaced+' 本':'')+'</div></div>'+
+    '<div class="opt"><label>引き回し <select id="route"><option value="L"'+(p.route==='L'?' selected':'')+'>床を直角に(縦横)</option><option value="S"'+(p.route==='S'?' selected':'')+'>直線</option></select></label>'+
+    '<label>余裕 <input id="slack" type="number" min="0" step="0.5" value="'+p.slack+'">m</label>'+
+    '<label><input id="lbl" type="checkbox"'+(p.labels?' checked':'')+'> 長さを図に表示</label></div>'+
+    (sorted.length?cableRows(sh,sorted):'<div class="empty">機材を図に置くと、つながるケーブルの距離と必要な長さが出ます。</div>')+
+    '<div class="row"><button class="btn" id="fill" type="button"'+(sorted.length?'':' disabled')+'>不足・未設定の長さを推奨値で配線図へ反映</button></div>'+
+    '<div class="note">必要長は「実距離 + 余裕(両端の取り回し)」を、市販の長さ(1・1.5・2・3・5・7.5・10・15・20・30・50・100m)に切り上げた値です。ステージの高さの差は加算されます。壁沿い・扉越しは、ケーブルごとに経由点を指定すると反映されます(天井の吊りや三脚の高さは含みません)。</div>';
+  $('#route').addEventListener('change',function(e){pushUndo();p.route=e.target.value;renderPlanAll();changed()});
+  var sl=$('#slack');sl.addEventListener('focus',function(){sl._first=true});
+  sl.addEventListener('input',function(){var v=parseFloat(sl.value);if(isNaN(v)||v<0)return;if(sl._first){pushUndo();sl._first=false}p.slack=v;renderPlan();changed()});
+  sl.addEventListener('change',function(){renderPlanSide()});
+  $('#lbl').addEventListener('change',function(e){pushUndo();p.labels=e.target.checked;renderPlan();changed()});
+  $('#fill').addEventListener('click',function(){
+    pushUndo();var n=0;
+    sorted.forEach(function(x){if(isNaN(x.set)||x.bad){x.c.len=fm(x.need)+'m';n++}});
+    renderAll();renderPlanAll();changed();
+  });
+  bindCableRows(box);
+}
+function aimHtml(p,id){
+  var a=p.aim[id];
+  if(!a)return '<div class="row"><button class="btn" id="aimOn" type="button">向き・画角を表示</button></div>';
+  return '<div><h2>向きと画角</h2></div><div class="dims"><span>向き</span><input id="aa" type="number" step="5" value="'+Math.round(a.ang)+'"><span>°</span><span>画角</span><input id="af" type="number" step="5" min="5" max="170" value="'+Math.round(a.fov)+'"><span>°</span></div>'+
+    '<div class="dims"><span>届く距離</span><input id="ar" type="number" step="0.5" min="1" max="100" value="'+fm(a.range)+'"><span>m</span><select id="alens" aria-label="画角の目安"><option value="">目安…</option><option value="80">広角 80°</option><option value="50">標準 50°</option><option value="25">望遠 25°</option><option value="10">超望遠 10°</option></select></div>'+
+    '<div class="note">向きは上=0°、右=90°、下=180°、左=270°。図の上の◎をドラッグでも変えられます。</div>'+
+    '<div class="row"><button class="btn" id="aimOff" type="button">向きの表示を消す</button></div>';
+}
+function bindAim(p,id){
+  var on=$('#aimOn');
+  if(on){on.addEventListener('click',function(){pushUndo();p.aim[id]={ang:0,fov:50,range:6};renderPlanAll();changed()});return}
+  var bi=function(sel,fn){var i=$(sel);i.addEventListener('focus',function(){i._first=true});
+    i.addEventListener('input',function(){var v=parseFloat(i.value);if(isNaN(v))return;if(i._first){pushUndo();i._first=false}fn(v);renderPlan();changed()})};
+  bi('#aa',function(v){p.aim[id].ang=((v%360)+360)%360});
+  bi('#af',function(v){p.aim[id].fov=clamp(v,5,170)});
+  bi('#ar',function(v){p.aim[id].range=clamp(v,1,100)});
+  $('#alens').addEventListener('change',function(e){var v=parseFloat(e.target.value);if(!v)return;pushUndo();p.aim[id].fov=v;renderPlanAll();changed()});
+  $('#aimOff').addEventListener('click',function(){pushUndo();delete p.aim[id];renderPlanAll();changed()});
+}
+function cableRows(sh,list){
+  return '<div class="plist">'+list.map(function(it){
+    var setTxt=isNaN(it.set)?(it.c.len?esc(it.c.len):'未設定'):fm(it.set)+'m';
+    return '<div class="crow '+tcls(it.type)+(it.bad?' bad':'')+'" data-pc="'+it.c.id+'"><div class="t"><i></i><span>'+esc(cableTitle(sh,it.c))+'</span></div><div class="r">要 '+fm(it.need)+'m</div>'+
+      '<div class="m">'+esc(CT[it.type].short)+' ・ 距離 '+fm(it.base)+'m'+(it.dz>0?'(段差+'+fm(it.dz)+')':'')+(it.nvia?' ・ 経由'+it.nvia:'')+' ・ 設定 '+setTxt+(it.bad?' ⚠不足':'')+'</div></div>';
+  }).join('')+'</div>';
+}
+function bindCableRows(box){
+  box.querySelectorAll('.crow').forEach(function(r){r.addEventListener('click',function(){planSel={kind:'cable',id:r.getAttribute('data-pc')};renderPlanAll()})});
+}
+function renderPlanAll(){
+  if(planFit&&fitPlan())planFit=false;
+  renderPlanLeft();renderPlan();renderPlanSide();
+}
+// interaction
+var pptrs=new Map(),pmode=null,pdrag=null,ppan=null,pdoor=null;
+pv.addEventListener('pointerdown',function(e){
+  if(e.button!==undefined&&e.button>0)return;
+  try{pv.setPointerCapture(e.pointerId)}catch(_){}
+  pptrs.set(e.pointerId,1);
+  var t=e.target,sh=cur(),p=pl();
+  var eqE=t.closest&&t.closest('[data-eq]'),dE=t.closest&&t.closest('[data-door]'),cE=t.closest&&t.closest('[data-pc]');
+  var vE=t.closest&&t.closest('[data-via]'),aE=t.closest&&t.closest('[data-aim]'),zE=t.closest&&t.closest('[data-zone]'),rE=t.closest&&t.closest('[data-zres]');
+  var m=pToM(e.clientX,e.clientY);
+  if(vE){var vp=vE.getAttribute('data-via').split('|');pmode='via';pdrag={cid:vp[0],i:+vp[1],moved:false}}
+  else if(aE){pmode='aim';pdrag={id:aE.getAttribute('data-aim'),moved:false}}
+  else if(rE){var rz=p.zones.find(function(x){return x.id===rE.getAttribute('data-zres')});pmode='zres';pdrag={id:rz.id,moved:false}}
+  else if(eqE){
+    var id=eqE.getAttribute('data-eq'),q=p.placed[id];
+    pmode='eq';pdrag={id:id,dx:m.x-q.x,dy:m.y-q.y,moved:false};
+    if(!(planSel&&planSel.kind==='eq'&&planSel.id===id)){planSel={kind:'eq',id:id};renderPlanAll()}
+  }else if(zE){
+    var zid=zE.getAttribute('data-zone'),zz=p.zones.find(function(x){return x.id===zid});
+    pmode='zone';pdrag={id:zid,dx:m.x-zz.x,dy:m.y-zz.y,moved:false};
+    if(!(planSel&&planSel.kind==='zone'&&planSel.id===zid)){planSel={kind:'zone',id:zid};renderPlanAll()}
+  }else if(dE){
+    var did=dE.getAttribute('data-door');pmode='door';pdoor={id:did,moved:false};
+    planSel={kind:'door',id:did};renderPlanAll();
+  }else if(cE){
+    planSel={kind:'cable',id:cE.getAttribute('data-pc')};pmode=null;renderPlanAll();
+  }else{
+    pmode='pan';ppan={x:e.clientX,y:e.clientY,vx:pview.x,vy:pview.y,moved:false};pv.classList.add('panning');
+  }
+});
+pv.addEventListener('pointermove',function(e){
+  var p=pl();
+  if(pmode==='via'&&pdrag){
+    var mv=pToM(e.clientX,e.clientY),arr=p.via[pdrag.cid],vq=arr&&arr[pdrag.i];if(!vq)return;
+    var vx=clamp(snapM(mv.x),0,p.w),vy=clamp(snapM(mv.y),0,p.d);
+    if(vx!==vq.x||vy!==vq.y){if(!pdrag.moved){pushUndo();pdrag.moved=true}vq.x=vx;vq.y=vy;renderPlan()}
+  }else if(pmode==='aim'&&pdrag){
+    var ma=pToM(e.clientX,e.clientY),aq=p.placed[pdrag.id],ao=p.aim[pdrag.id];if(!aq||!ao)return;
+    var ddx=ma.x-aq.x,ddy=ma.y-aq.y,ang=Math.round(((Math.atan2(ddx,-ddy)*180/Math.PI+360)%360)/5)*5%360,rg=clamp(Math.round(Math.hypot(ddx,ddy)*2)/2,1,100);
+    if(ang!==ao.ang||rg!==ao.range){if(!pdrag.moved){pushUndo();pdrag.moved=true}ao.ang=ang;ao.range=rg;renderPlan()}
+  }else if(pmode==='zone'&&pdrag){
+    var mz=pToM(e.clientX,e.clientY),z=p.zones.find(function(x){return x.id===pdrag.id});if(!z)return;
+    var zx=clamp(snapM(mz.x-pdrag.dx),0,p.w-z.w),zy=clamp(snapM(mz.y-pdrag.dy),0,p.d-z.d);
+    if(zx!==z.x||zy!==z.y){if(!pdrag.moved){pushUndo();pdrag.moved=true}z.x=zx;z.y=zy;renderPlan()}
+  }else if(pmode==='zres'&&pdrag){
+    var mr=pToM(e.clientX,e.clientY),zr=p.zones.find(function(x){return x.id===pdrag.id});if(!zr)return;
+    var zw=clamp(snapM(mr.x-zr.x),0.25,p.w-zr.x),zd=clamp(snapM(mr.y-zr.y),0.25,p.d-zr.y);
+    if(zw!==zr.w||zd!==zr.d){if(!pdrag.moved){pushUndo();pdrag.moved=true}zr.w=zw;zr.d=zd;renderPlan()}
+  }else if(pmode==='eq'&&pdrag){
+    var m=pToM(e.clientX,e.clientY),q=p.placed[pdrag.id];if(!q)return;
+    var nx=clamp(snapM(m.x-pdrag.dx),0,p.w),ny=clamp(snapM(m.y-pdrag.dy),0,p.d);
+    if(nx!==q.x||ny!==q.y){
+      if(!pdrag.moved){pushUndo();pdrag.moved=true}
+      q.x=nx;q.y=ny;var mm=monitorOf(p,pdrag.id);if(mm)p.placed[mm]={x:nx,y:ny};
+      pdrag.cand=findMerge(cur(),p,pdrag.id);renderPlan();
+    }
+  }else if(pmode==='door'&&pdoor){
+    var d=p.doors.find(function(x){return x.id===pdoor.id});if(!d)return;
+    var mm=pToM(e.clientX,e.clientY),pos=(d.wall==='top'||d.wall==='bottom')?mm.x:mm.y,L=wallLen(p,d.wall);
+    pos=clamp(Math.round(pos*4)/4,d.width/2,L-d.width/2);
+    if(pos!==d.pos){if(!pdoor.moved){pushUndo();pdoor.moved=true}d.pos=pos;renderPlan()}
+  }else if(pmode==='pan'&&ppan){
+    var dx=e.clientX-ppan.x,dy=e.clientY-ppan.y;if(Math.abs(dx)+Math.abs(dy)>3)ppan.moved=true;
+    pview.x=ppan.vx+dx;pview.y=ppan.vy+dy;renderPlan();
+  }
+});
+function pEnd(e){
+  if(!pptrs.delete(e.pointerId))return;
+  if((pmode==='via'||pmode==='aim'||pmode==='zone'||pmode==='zres')&&pdrag){
+    if(pdrag.moved){changed();renderPlanAll()}
+    pdrag=null}
+  else if(pmode==='eq'&&pdrag){
+    if(pdrag.moved){
+      var pp=pl(),cd=pdrag.cand;pdrag.cand=null;
+      if(cd){var camId=mergePair(cur(),pp,pdrag.id,cd);if(camId)planSel={kind:'eq',id:camId}}
+      changed();renderPlanAll();
+    }
+    pdrag=null}
+  else if(pmode==='door'&&pdoor){if(pdoor.moved){changed();renderPlanSide()}pdoor=null}
+  else if(pmode==='pan'&&ppan){pv.classList.remove('panning');if(!ppan.moved&&planSel){planSel=null;renderPlanAll()}ppan=null}
+  pmode=null;
+}
+pv.addEventListener('pointerup',pEnd);pv.addEventListener('pointercancel',pEnd);
+function pZoom(cx,cy,f){
+  var r=pv.getBoundingClientRect(),px=cx-r.left,py=cy-r.top,k=clamp(pview.k*f,3,120),real=k/pview.k;
+  pview.x=px-(px-pview.x)*real;pview.y=py-(py-pview.y)*real;pview.k=k;renderPlan();
+}
+pv.addEventListener('wheel',function(e){e.preventDefault();pZoom(e.clientX,e.clientY,Math.exp(-e.deltaY*0.0016))},{passive:false});
+pv.addEventListener('dragover',function(e){e.preventDefault()});
+pv.addEventListener('drop',function(e){
+  e.preventDefault();var d=e.dataTransfer.getData('text/plain')||'';if(d.indexOf('eq:')!==0)return;
+  var id=d.slice(3),p=pl();if(!nodeById(cur(),id))return;
+  var m=pToM(e.clientX,e.clientY);pushUndo();
+  p.placed[id]={x:clamp(snapM(m.x),0,p.w),y:clamp(snapM(m.y),0,p.d)};planSel={kind:'eq',id:id};
+  var cd=findMerge(cur(),p,id);if(cd){var camId=mergePair(cur(),p,id,cd);if(camId)planSel={kind:'eq',id:camId}}
+  renderPlanAll();changed();
+});
+function pZoomC(f){var r=pv.getBoundingClientRect();pZoom(r.left+r.width/2,r.top+r.height/2,f)}
+$('#pzin').addEventListener('click',function(){pZoomC(1.2)});
+$('#pzout').addEventListener('click',function(){pZoomC(1/1.2)});
+$('#pzfit').addEventListener('click',function(){fitPlan();renderPlan()});
+
+/* ---------- 表示の切り替え ---------- */
+function setView(v,fromHash){
+  viewMode=v;
+  $('#mainWire').hidden=v!=='wire';$('#mainPlan').hidden=v!=='plan';
+  $('#vWire').setAttribute('aria-pressed',v==='wire'?'true':'false');
+  $('#vPlan').setAttribute('aria-pressed',v==='plan'?'true':'false');
+  if(!fromHash){try{history.replaceState(null,'',v==='plan'?'#plan':'#wiring')}catch(e){try{location.hash=v==='plan'?'plan':'wiring'}catch(e2){}}}
+  if(v==='plan'){planFit=true;requestAnimationFrame(function(){renderPlanAll()})}
+  else{requestAnimationFrame(function(){applyView()})}
+}
+$('#vWire').addEventListener('click',function(){setView('wire')});
+$('#vPlan').addEventListener('click',function(){setView('plan')});
+window.addEventListener('hashchange',function(){var h=location.hash;if(h==='#plan'&&viewMode!=='plan')setView('plan',true);else if(h==='#wiring'&&viewMode!=='wire')setView('wire',true)});
+window.addEventListener('resize',function(){if(viewMode==='plan')renderPlan()});
+
+/* ---------- 書き出し(PNG / PDF) ---------- */
+var dl=null,expBusy=false,NS='http://www.w3.org/2000/svg';
+var EXP_PROPS=['fill','fill-opacity','stroke','stroke-width','stroke-opacity','stroke-dasharray','stroke-linecap','stroke-linejoin','opacity','font-family','font-size','font-weight','text-anchor','paint-order','color'];
+function withLight(fn){
+  var r=document.documentElement,prev=r.getAttribute('data-theme');r.setAttribute('data-theme','light');
+  try{return fn()}finally{if(prev===null)r.removeAttribute('data-theme');else r.setAttribute('data-theme',prev)}
+}
+function inlineStyles(src,dst){
+  var a=[src].concat([].slice.call(src.querySelectorAll('*'))),b=[dst].concat([].slice.call(dst.querySelectorAll('*')));
+  for(var i=0;i<a.length&&i<b.length;i++){
+    var cs=getComputedStyle(a[i]),st='';
+    EXP_PROPS.forEach(function(pr){var v=cs.getPropertyValue(pr);if(v)st+=pr+':'+v+';'});
+    b[i].setAttribute('style',st);b[i].removeAttribute('class');
+  }
+}
+function esc2(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function finishSvg(clone,vb,title,sub){
+  var head=48,W=vb.w,H=vb.h+head;
+  clone.removeAttribute('style');clone.removeAttribute('class');clone.removeAttribute('role');clone.removeAttribute('aria-label');
+  clone.setAttribute('xmlns',NS);clone.setAttribute('width',W);clone.setAttribute('height',H);
+  clone.setAttribute('viewBox',[vb.x,vb.y-head,W,H].join(' '));
+  var defs=document.createElementNS(NS,'defs'),seen={};
+  [].slice.call(clone.querySelectorAll('use')).forEach(function(u){
+    var id=(u.getAttribute('href')||'').replace('#','');if(!id||seen[id])return;seen[id]=1;
+    var sym=document.getElementById(id);if(sym)defs.appendChild(sym.cloneNode(true));
+  });
+  clone.insertBefore(defs,clone.firstChild);
+  var bg=document.createElementNS(NS,'rect');
+  bg.setAttribute('x',vb.x);bg.setAttribute('y',vb.y-head);bg.setAttribute('width',W);bg.setAttribute('height',H);bg.setAttribute('fill','#ffffff');
+  clone.insertBefore(bg,defs.nextSibling);
+  var t=document.createElementNS(NS,'text');
+  t.setAttribute('x',vb.x+16);t.setAttribute('y',vb.y-head+30);t.setAttribute('font-size','20');t.setAttribute('font-weight','700');t.setAttribute('fill','#1d2327');
+  t.setAttribute('font-family','Noto Sans JP,Hiragino Sans,Yu Gothic UI,sans-serif');t.textContent=title;clone.appendChild(t);
+  if(sub){var t2=document.createElementNS(NS,'text');t2.setAttribute('x',vb.x+W-16);t2.setAttribute('y',vb.y-head+30);t2.setAttribute('text-anchor','end');t2.setAttribute('font-size','12');t2.setAttribute('fill','#69706b');
+    t2.setAttribute('font-family','Noto Sans JP,Hiragino Sans,Yu Gothic UI,sans-serif');t2.textContent=sub;clone.appendChild(t2)}
+  return {el:clone,w:W,h:H};
+}
+function todayStr(){var d=new Date();return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()}
+function buildWireSvg(sh){
+  if(!sh.nodes.length)return null;
+  var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  sh.nodes.filter(function(n){return !isChild(sh,n)}).forEach(function(n){var h=layout(sh,n).h;x0=Math.min(x0,n.x);y0=Math.min(y0,n.y);x1=Math.max(x1,n.x+NW);y1=Math.max(y1,n.y+h)});
+  (sh.groups||[]).forEach(function(g){x0=Math.min(x0,g.x);y0=Math.min(y0,g.y);x1=Math.max(x1,g.x+g.w);y1=Math.max(y1,g.y+g.h)});
+  var pad=50,vb={x:x0-pad,y:y0-pad,w:x1-x0+pad*2,h:y1-y0+pad*2};
+  var sv=sel;sel=null;
+  var out=withLight(function(){
+    render();
+    var c=svg.cloneNode(true);inlineStyles(svg,c);
+    var gr=c.querySelector('#gridrect');if(gr)gr.remove();
+    var w=c.querySelector('#world');if(w)w.removeAttribute('transform');
+    return finishSvg(c,vb,sh.name+' — 配線図',todayStr());
+  });
+  sel=sv;render();
+  return out;
+}
+function buildPlanSvg(sh){
+  var p=pl();if(!Object.keys(p.placed).some(function(id){return nodeById(sh,id)}))return null;
+  var v0={x:pview.x,y:pview.y,k:pview.k},ps=planSel,lb=p.labels,pd=pdrag;
+  planSel=null;pdrag=null;p.labels=true;
+  var kk=clamp(Math.min(1500/p.w,950/p.d),10,60);pview.x=70;pview.y=66;pview.k=kk;
+  var vb={x:0,y:0,w:70+p.w*kk+44,h:66+p.d*kk+40};
+  var out=withLight(function(){
+    renderPlan();
+    var c=pv.cloneNode(true);inlineStyles(pv,c);
+    return finishSvg(c,vb,sh.name+' — 会場レイアウト '+(p.room||'')+' '+fm(p.w)+'×'+fm(p.d)+'m',todayStr());
+  });
+  pview.x=v0.x;pview.y=v0.y;pview.k=v0.k;planSel=ps;p.labels=lb;pdrag=pd;renderPlan();
+  return out;
+}
+function wrapStr(t,maxW,size){
+  var lines=[],cur2='',w=0;
+  String(t).split('\n').forEach(function(para){
+    cur2='';w=0;
+    for(var i=0;i<para.length;i++){var cw=tw(para[i],size);if(w+cw>maxW&&cur2){lines.push(cur2);cur2='';w=0}cur2+=para[i];w+=cw}
+    lines.push(cur2);
+  });
+  return lines;
+}
+function buildTextPages(sh){
+  var W=1400,H=990,M=56,LH=23,rows=[];
+  function add(t,o){rows.push(Object.assign({t:t,size:14,bold:false,color:'#1d2327',ind:0,gap:0},o||{}))}
+  add(sh.name+' — 集計・機材メモ',{size:22,bold:true,gap:4});add(todayStr(),{size:12,color:'#69706b',gap:8});
+  add('ケーブル集計(持ち出し用)',{size:16,bold:true,gap:6});
+  var m={},order={};CABLE_TYPES.forEach(function(t,i){order[t.id]=i});
+  sh.cables.forEach(function(c){var t=ctypeOf(sh,c),len=c.len||'長さ未設定',k=t+'|'+len;m[k]=m[k]||{type:t,len:len,n:0};m[k].n++});
+  var cr=Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return order[a.type]-order[b.type]||a.len.localeCompare(b.len,'ja',{numeric:true})});
+  if(!cr.length)add('(ケーブルなし)',{color:'#69706b',ind:12});
+  cr.forEach(function(r){add(CT[r.type].short+'  '+r.len+'   × '+r.n+' 本',{ind:12})});
+  var p=pl();
+  var cabs=planCables(sh,p);
+  if(cabs.length){
+    add('見取り図でのケーブル必要長(余裕 '+fm(p.slack)+'m 込み・市販長に切り上げ)',{size:16,bold:true,gap:14});
+    cabs.slice().sort(function(a,b){return b.need-a.need}).forEach(function(it){
+      var l=cableTitle(sh,it.c)+'   '+CT[it.type].short+'   距離 '+fm(it.base)+'m'+(it.dz>0?'(段差+'+fm(it.dz)+')':'')+(it.nvia?' 経由'+it.nvia:'')+'   設定 '+(isNaN(it.set)?(it.c.len||'未設定'):fm(it.set)+'m')+'   → 要 '+fm(it.need)+'m'+(it.bad?'  ※不足':'');
+      wrapStr(l,W-M*2-24,13).forEach(function(x,i){add(x,{size:13,ind:12+(i?16:0),color:it.bad?'#c2255c':'#1d2327'})});
+    });
+  }
+  add('機材一覧('+sh.nodes.length+')',{size:16,bold:true,gap:14});
+  sh.nodes.forEach(function(n){
+    var ch=childOf(sh,n),head=(n.name||'(名称なし)')+'   ['+(NT[n.type]?NT[n.type].label:'')+']'+(n.note?'   '+n.note:'')+(ch?'   + '+ch.name:'');
+    if(isChild(sh,n))return;
+    wrapStr(head,W-M*2-24,14).forEach(function(x,i){add(x,{bold:!i,ind:12+(i?16:0),gap:i?0:3})});
+    [n].concat(ch?[ch]:[]).forEach(function(o){
+      var det=[];if(o.ip)det.push('IP  '+o.ip);if(o.res)det.push('設定  '+o.res);if(o.memo)det.push('メモ  '+o.memo);
+      det.forEach(function(d){wrapStr((o!==n?o.name+' — ':'')+d,W-M*2-60,13).forEach(function(x,i){add(x,{size:13,color:'#444b4f',ind:36+(i?16:0)})})});
+    });
+  });
+  var pages=[],cur3=[],y=M+10;
+  rows.forEach(function(r){
+    var need=r.size*1.55+r.gap;
+    if(y+need>H-M){pages.push(cur3);cur3=[];y=M+10}
+    y+=r.gap;cur3.push({r:r,y:y+r.size});y+=r.size*1.55;
+  });
+  if(cur3.length)pages.push(cur3);
+  return pages.map(function(pg,pi){
+    var body=pg.map(function(o){return '<text x="'+(M+o.r.ind)+'" y="'+o.y+'" font-size="'+o.r.size+'" font-weight="'+(o.r.bold?700:400)+'" fill="'+o.r.color+'">'+esc2(o.r.t)+'</text>'}).join('');
+    var xml='<svg xmlns="'+NS+'" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Noto Sans JP,Hiragino Sans,Yu Gothic UI,sans-serif"><rect width="'+W+'" height="'+H+'" fill="#ffffff"/>'+body+
+      '<text x="'+(W-M)+'" y="'+(H-24)+'" font-size="11" fill="#69706b" text-anchor="end">'+(pi+1)+' / '+pages.length+'</text></svg>';
+    return {xml:xml,w:W,h:H};
+  });
+}
+function svgToCanvas(xml,w,h){
+  return new Promise(function(res,rej){
+    var long=Math.max(w,h),scale=Math.min(3,Math.max(1,2400/long)),cw=Math.round(w*scale),ch=Math.round(h*scale);
+    var img=new Image();
+    img.onload=function(){var c=document.createElement('canvas');c.width=cw;c.height=ch;var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cw,ch);x.drawImage(img,0,0,cw,ch);res(c)};
+    img.onerror=function(){rej(new Error('render'))};
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml);
+  });
+}
+function serial(o){return new XMLSerializer().serializeToString(o.el)}
+function flash(t){$('#status').textContent=t;setTimeout(function(){setStatus(lastStat)},3500)}
+function safeName(t){return String(t||'図').replace(/[\\\/:*?"<>|]/g,'_').slice(0,60)}
+function saveOut(name,data){
+  return dl.save({filename:name,data:data}).then(function(){flash('保存しました')},function(err){
+    var c=err&&err.code;flash(c==='declined'?'キャンセルしました':(c==='rate_limited'?'少し待ってからもう一度':'保存できませんでした'));
+  });
+}
+function exportPng(){
+  if(!dl||expBusy)return;expBusy=true;flash('画像を作成中…');
+  var sh=cur(),o=viewMode==='plan'?buildPlanSvg(sh):buildWireSvg(sh);
+  if(!o){expBusy=false;flash(viewMode==='plan'?'機材を配置すると書き出せます':'機材を追加すると書き出せます');return}
+  svgToCanvas(serial(o),o.w,o.h).then(function(c){
+    return new Promise(function(res,rej){c.toBlob(function(b){b?res(b):rej(new Error('blob'))},'image/png')});
+  }).then(function(b){return saveOut(safeName(sh.name)+(viewMode==='plan'?'_会場レイアウト.png':'_配線図.png'),b)})
+  .catch(function(){flash('画像を作れませんでした')}).then(function(){expBusy=false});
+}
+function exportPdf(){
+  if(!dl||expBusy)return;
+  var J=window.jspdf&&window.jspdf.jsPDF;if(!J){flash('PDFの部品を読み込めませんでした');return}
+  expBusy=true;flash('PDFを作成中…');
+  var sh=cur(),items=[],w=buildWireSvg(sh),pl2=buildPlanSvg(sh);
+  if(w)items.push({xml:serial(w),w:w.w,h:w.h});
+  if(pl2)items.push({xml:serial(pl2),w:pl2.w,h:pl2.h});
+  buildTextPages(sh).forEach(function(t){items.push(t)});
+  Promise.all(items.map(function(i){return svgToCanvas(i.xml,i.w,i.h)})).then(function(cvs){
+    var doc=new J({orientation:'landscape',unit:'mm',format:'a4'}),pw=297,ph=210,m=8;
+    cvs.forEach(function(c,i){
+      if(i)doc.addPage();
+      var r=Math.min((pw-m*2)/c.width,(ph-m*2)/c.height),ww=c.width*r,hh=c.height*r;
+      doc.addImage(c.toDataURL('image/png'),'PNG',(pw-ww)/2,(ph-hh)/2,ww,hh,undefined,'FAST');
+    });
+    return saveOut(safeName(sh.name)+'_配線図セット.pdf',doc.output('blob'));
+  }).catch(function(){flash('PDFを作れませんでした')}).then(function(){expBusy=false});
+}
+$('#expPng').addEventListener('click',exportPng);
+$('#expPdf').addEventListener('click',exportPdf);
+function browserSave(o){
+  return new Promise(function(res){
+    var b=o.data instanceof Blob?o.data:new Blob([o.data]),u=URL.createObjectURL(b),a=document.createElement('a');
+    a.href=u;a.download=o.filename;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);res({status:'saved'});
+  });
+}
+if(!(window.claude&&window.claude.use)){dl={save:browserSave};$('#exp').hidden=false}
+if(window.claude&&window.claude.use){window.claude.use('downloads').then(function(d){if(d){dl=d;$('#exp').hidden=false}}).catch(function(){})}
+
+/* ---------- boot ---------- */
+state=loadLocal()||newState();
+$('#undo').disabled=true;
+renderPalette();renderChips();
+fitView();renderAll();
+requestAnimationFrame(function(){fitView();applyView()});
+setStatus(localSavedAt?'local':'loading');
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){navigator.serviceWorker.register('sw.js').catch(function(){})}
+initDb();
+if(location.hash==='#plan')setView('plan',true);
+})();
+</script>
+</body>
+</html>
